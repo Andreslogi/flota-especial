@@ -19,6 +19,11 @@ services:
     buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
+      # Fija la versión de Python: sin esto, Render usa la más nueva
+      # (3.14), y pydantic 2.9.2 todavía no tiene paquete precompilado
+      # para esa versión, lo que rompe el build al intentar compilarlo.
+      - key: PYTHON_VERSION
+        value: "3.11.9"
       - key: DATABASE_URL
         fromDatabase:
           name: flota-especial-db
