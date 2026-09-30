@@ -1,12 +1,19 @@
 databases:
-  - name: flota-db
-    plan: free
-    databaseName: flota
-    user: flota
+  # OJO: plan "free" en Postgres de Render se BORRA solo a los 30 días
+  # (con 14 días de gracia para pasarla a pago antes de perder los datos
+  # para siempre). Como esta base es el sistema real de la operación, va
+  # en el plan pago más económico ($6/mes) para que nunca se borre sola.
+  - name: flota-especial-db
+    plan: "0.1c-256mb"
+    databaseName: flota_especial
+    user: flota_especial
 
 services:
   - type: web
-    name: flota-backend
+    # Nombre único a propósito (distinto del de tu otra app en Render) para
+    # que sean dos servicios totalmente independientes: no comparten base
+    # de datos, variables de entorno, ni dominio.
+    name: flota-especial-backend
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
@@ -14,15 +21,15 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: flota-db
+          name: flota-especial-db
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "1440"
       - key: ADMIN_EMAIL
-        value: admin@tuempresa.com
+        value: andreslopez010@hotmail.com
       - key: ADMIN_PASSWORD
         generateValue: true
       - key: ADMIN_NAME
-        value: Administrador
+        value: Andres Lopez
