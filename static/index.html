@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Control de Flota</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  --bg:#f2f5f9;
+  --surface:#ffffff;
+  --surface-2:#edf1f7;
+  --ink:#293349;
+  --ink-dim:#717d95;
+  --border:#e1e6ef;
+  --primary:#3d5a80;
+  --primary-ink:#f0f4fa;
+  --accent:#6f9bc0;
+  --accent-ink:#ffffff;
+  --income:#4f9d84;
+  --income-bg:#e8f3ee;
+  --expense:#c27b6f;
+  --expense-bg:#f9ede9;
+  --warn:#c29a52;
+  --warn-bg:#f8f1e1;
+  --shadow: 0 1px 2px rgba(40,55,85,.05), 0 8px 22px -10px rgba(40,55,85,.14);
+  --radius: 14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161b26; --surface:#1e2430; --surface-2:#242b39; --ink:#e7eaf2; --ink-dim:#98a2b8;
+    --border:#313a4c; --primary:#8aacd1; --primary-ink:#111722; --accent:#7fb2d6; --accent-ink:#0c1b28;
+    --income:#7fc4ab; --income-bg:#1c332c; --expense:#dba299; --expense-bg:#3a2723;
+    --warn:#ddbb7e; --warn-bg:#362b16;
+    --shadow: 0 1px 2px rgba(0,0,0,.25), 0 10px 24px -10px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161b26; --surface:#1e2430; --surface-2:#242b39; --ink:#e7eaf2; --ink-dim:#98a2b8;
+  --border:#313a4c; --primary:#8aacd1; --primary-ink:#111722; --accent:#7fb2d6; --accent-ink:#0c1b28;
+  --income:#7fc4ab; --income-bg:#1c332c; --expense:#dba299; --expense-bg:#3a2723;
+  --warn:#ddbb7e; --warn-bg:#362b16;
+  --shadow: 0 1px 2px rgba(0,0,0,.25), 0 10px 24px -10px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Work Sans",system-ui,sans-serif;}
+h1,h2,h3,.display{font-family:"Manrope",system-ui,sans-serif;letter-spacing:-.01em;text-wrap:balance;}
+.mono, .num{font-family:"IBM Plex Mono","Work Sans",monospace;font-variant-numeric:tabular-nums;}
+button{font-family:inherit;}
+a{color:inherit;}
+[hidden]{display:none!important;}
+::selection{background:var(--accent);color:var(--accent-ink);}
+
+/* ---------- Login ---------- */
+.login-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:
+  radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%),
+  radial-gradient(circle at 85% 90%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 55%), var(--bg);}
+.login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:30px 28px 26px;}
+.login-brand{display:flex;align-items:center;gap:10px;margin-bottom:22px;}
+.login-brand .mark{width:36px;height:36px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;flex:0 0 36px;}
+.login-brand .txt{font-family:"Manrope";font-weight:700;font-size:18.5px;letter-spacing:-.01em;}
+.login-brand .txt small{display:block;font-family:"Work Sans";font-weight:500;font-size:11px;color:var(--ink-dim);letter-spacing:.04em;text-transform:uppercase;}
+.login-card h2{margin:0 0 4px;font-size:20px;}
+.login-card p.sub{margin:0 0 20px;color:var(--ink-dim);font-size:13px;}
+.login-error{background:var(--expense-bg);color:var(--expense);font-size:12.5px;font-weight:600;padding:9px 11px;border-radius:9px;margin-bottom:12px;}
+
+/* ---------- Sidebar ---------- */
+.app{display:flex;min-height:100dvh;}
+.sidebar{width:220px;flex:0 0 220px;background:var(--primary);color:var(--primary-ink);display:flex;flex-direction:column;position:sticky;top:env(safe-area-inset-top,0px);align-self:flex-start;height:100dvh;}
+.brand{padding:20px 18px 14px;display:flex;align-items:center;gap:10px;}
+.brand-mark{width:32px;height:32px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;flex:0 0 32px;}
+.brand-text{font-family:"Manrope";font-weight:700;font-size:18px;line-height:1.1;letter-spacing:-.01em;}
+.brand-text small{display:block;font-family:"Work Sans";font-weight:500;font-size:11px;opacity:.72;letter-spacing:.04em;text-transform:uppercase;}
+nav.navlist{display:flex;flex-direction:column;gap:2px;padding:8px 10px;flex:1;overflow-y:auto;}
+.navlink{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;color:var(--primary-ink);opacity:.78;text-decoration:none;font-size:14.5px;font-weight:500;border:none;background:transparent;cursor:pointer;text-align:left;width:100%;}
+.navlink svg{width:18px;height:18px;flex:0 0 18px;}
+.navlink:hover{opacity:1;background:rgba(255,255,255,.07);}
+.navlink.active{opacity:1;background:rgba(255,255,255,.14);font-weight:600;}
+.sidebar-foot{padding:11px 16px 14px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.sidebar-foot .who{font-size:12px;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sidebar-foot .who small{display:block;opacity:.65;font-size:10.5px;}
+.logoutbtn{background:rgba(255,255,255,.12);border:none;color:var(--primary-ink);width:28px;height:28px;border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:0 0 28px;}
+.logoutbtn:hover{background:rgba(255,255,255,.22);}
+
+/* ---------- Topbar / main ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:16px 24px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.topbar h1{margin:0;font-size:26px;font-weight:700;}
+.topbar .sub{color:var(--ink-dim);font-size:13px;margin-top:1px;}
+.month-picker{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:5px 6px;box-shadow:var(--shadow);}
+.month-picker button{width:26px;height:26px;border-radius:7px;border:none;background:transparent;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.month-picker button:hover{background:var(--surface-2);}
+.month-picker .mlabel{font-weight:600;font-size:13.5px;min-width:118px;text-align:center;text-transform:capitalize;}
+.content{padding:14px 24px 60px;flex:1;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-weight:600;font-size:13.5px;cursor:pointer;box-shadow:var(--shadow);}
+.btn:hover{border-color:var(--accent);}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+.btn.primary:hover{filter:brightness(1.06);}
+.btn.ghost{box-shadow:none;background:transparent;}
+.btn:disabled{opacity:.6;cursor:default;}
+.btn svg{width:15px;height:15px;}
+.btn-block{width:100%;justify-content:center;}
+
+/* ---------- Cards / grid ---------- */
+.grid{display:grid;gap:14px;}
+.kpis{grid-template-columns:repeat(4,1fr);}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr);}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);}
+.kpi .lbl{font-size:12px;color:var(--ink-dim);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.kpi .val{font-family:"IBM Plex Mono";font-size:25px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums;}
+.kpi .delta{font-size:12px;margin-top:5px;font-weight:600;}
+.up{color:var(--income);} .down{color:var(--expense);}
+.two-col{grid-template-columns:1.3fr 1fr;}
+@media (max-width:900px){.two-col{grid-template-columns:1fr;}}
+.card h3{margin:0 0 2px;font-size:18px;font-weight:600;}
+.card .cardsub{color:var(--ink-dim);font-size:12.5px;margin-bottom:12px;}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;text-transform:uppercase;letter-spacing:.03em;}
+.pill.income{background:var(--income-bg);color:var(--income);}
+.pill.expense{background:var(--expense-bg);color:var(--expense);}
+.pill.warn{background:var(--warn-bg);color:var(--warn);}
+.pill.neutral{background:var(--surface-2);color:var(--ink-dim);}
+
+/* ---------- Tables ---------- */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);box-shadow:var(--shadow);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px;}
+thead th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-dim);font-weight:700;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface-2);white-space:nowrap;}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--surface-2);}
+td.num,th.num{text-align:right;font-family:"IBM Plex Mono";font-variant-numeric:tabular-nums;}
+.rowactions{display:flex;gap:4px;justify-content:flex-end;}
+.iconbtn{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink-dim);}
+.iconbtn:hover{color:var(--ink);border-color:var(--accent);}
+.iconbtn svg{width:14px;height:14px;}
+.empty{padding:34px 20px;text-align:center;color:var(--ink-dim);font-size:13.5px;}
+
+.view-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap;}
+.view-head h2{margin:0;font-size:21px;}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(15,15,10,.45);display:flex;align-items:flex-end;justify-content:center;z-index:50;padding:0;}
+@media (min-width:640px){.overlay{align-items:center;padding:20px;}}
+.modal{background:var(--surface);width:100%;max-width:520px;border-radius:16px 16px 0 0;box-shadow:var(--shadow);max-height:92dvh;overflow-y:auto;}
+@media (min-width:640px){.modal{border-radius:16px;}}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);}
+.modal-head h3{margin:0;font-size:19px;}
+.modal-body{padding:16px 18px 20px;display:flex;flex-direction:column;gap:12px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;font-weight:600;color:var(--ink-dim);}
+.field input, .field select, .field textarea{font-family:inherit;font-size:14px;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink);width:100%;}
+.field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;}
+.modal-foot{display:flex;gap:8px;justify-content:flex-end;padding:14px 18px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--surface);}
+.close-x{width:30px;height:30px;border-radius:8px;border:none;background:var(--surface-2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--ink-dim);}
+
+/* ---------- Suggestions ---------- */
+.tips{display:flex;flex-direction:column;gap:10px;}
+.tip{display:flex;gap:10px;padding:11px 12px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);}
+.tip .dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:0 0 9px;}
+.tip.crit .dot{background:var(--expense);}
+.tip.warn .dot{background:var(--warn);}
+.tip.good .dot{background:var(--income);}
+.tip.info .dot{background:var(--accent);}
+.tip .t{font-size:13.5px;font-weight:600;margin-bottom:2px;}
+.tip .d{font-size:12.5px;color:var(--ink-dim);line-height:1.45;}
+
+/* ---------- Mobile ---------- */
+.menubtn{display:none;}
+@media (max-width:860px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;z-index:40;transform:translateX(-104%);transition:transform .2s ease;}
+  .sidebar.open{transform:translateX(0);box-shadow:20px 0 60px rgba(0,0,0,.25);}
+  .menubtn{display:flex;}
+  .topbar{padding:14px 16px 8px;}
+  .content{padding:10px 16px 60px;}
+}
+.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:39;}
+.scrim.open{display:block;}
+.chartcard svg{width:100%;height:auto;display:block;}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:10px;}
+.legend .li{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-dim);}
+.legend .sw{width:9px;height:9px;border-radius:2px;flex:0 0 9px;}
+.muted{color:var(--ink-dim);}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;font-weight:600;z-index:80;box-shadow:var(--shadow);}
+</style>
+</head>
+<body>
+
+<div class="login-wrap" id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M6 17v2M18 17v2M5 6h14a1 1 0 011 1v8H4V7a1 1 0 011-1zM4 11h16M8 14h.01M16 14h.01"/></svg></div>
+      <div class="txt">Flota Especial<small>Control operativo</small></div>
+    </div>
+    <h2>Iniciar sesión</h2>
+    <p class="sub">Ingresa con tu correo y contraseña para ver la operación.</p>
+    <div class="login-error" id="loginError" hidden></div>
+    <form id="loginForm" style="display:flex;flex-direction:column;gap:12px;">
+      <div class="field"><label>Correo</label><input id="loginEmail" type="email" autocomplete="username" required></div>
+      <div class="field"><label>Contraseña</label><input id="loginPassword" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary btn-block" type="submit" id="loginBtn" style="margin-top:4px;">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="appShell" hidden>
+  <div class="scrim" id="scrim"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17h16M6 17v2M18 17v2M5 6h14a1 1 0 011 1v8H4V7a1 1 0 011-1zM4 11h16M8 6v0M8 14h.01M16 14h.01"/></svg></div>
+      <div class="brand-text">Flota Especial<small>Control operativo</small></div>
+    </div>
+    <nav class="navlist" id="navlist"></nav>
+    <div class="sidebar-foot">
+      <div class="who" id="whoami">—</div>
+      <button class="logoutbtn" id="logoutBtn" title="Cerrar sesión"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="menubtn iconbtn" id="menuBtn" style="width:36px;height:36px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <div>
+          <h1 id="viewTitle">Dashboard</h1>
+          <div class="sub" id="viewSub">Resumen financiero de la operación</div>
+        </div>
+      </div>
+      <div class="month-picker" id="monthPicker">
+        <button id="prevMonth" aria-label="Mes anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="mlabel" id="monthLabel">—</div>
+        <button id="nextMonth" aria-label="Mes siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M9 18l6-6-6-6"/></svg></button>
+      </div>
+    </div>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ============================ API ============================ */
+const API_BASE = '';
+let authToken = localStorage.getItem('flota_token') || null;
+let currentUser = JSON.parse(localStorage.getItem('flota_user') || 'null');
+
+async function apiFetch(path, opts={}){
+  const headers = Object.assign({}, opts.headers||{});
+  if(authToken) headers['Authorization'] = 'Bearer ' + authToken;
+  if(opts.body && !(opts.body instanceof URLSearchParams)) headers['Content-Type'] = 'application/json';
+  const res = await fetch(API_BASE + path, Object.assign({}, opts, {headers}));
+  if(res.status === 401){ doLogout(); throw new Error('No autorizado'); }
+  if(!res.ok){
+    let detail = 'Ocurrió un error.';
+    try{ const j = await res.json(); detail = j.detail || detail; }catch(e){}
+    throw new Error(detail);
+  }
+  if(res.status === 204) return null;
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+/* ============================ ICONS ============================ */
+const ICONS = {
+  dashboard:'<path d="M4 13h6V4H4v9zM14 20h6v-9h-6v9zM14 4v3h6V4h-6zM4 20h6v-3H4v3"/>',
+  vehicles:'<path d="M4 17h16M6 17v2M18 17v2M5 6h14a1 1 0 011 1v8H4V7a1 1 0 011-1zM4 11h16M8 14h.01M16 14h.01"/>',
+  contracts:'<path d="M7 3h8l4 4v14H7V3z"/><path d="M15 3v4h4M9 12h6M9 16h6M9 8h2"/>',
+  trips:'<path d="M12 21s7-6.4 7-12a7 7 0 10-14 0c0 5.6 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/>',
+  income:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+  expense:'<path d="M12 5v14M5 12l7 7 7-7"/>',
+  maintenance:'<path d="M14.7 6.3a4 4 0 00-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 005.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>',
+  users:'<path d="M17 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  edit:'<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/>',
+  trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>',
+  close:'<path d="M6 6l12 12M18 6L6 18"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/>',
+  schedule:'<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 13h2M8 17h2M14 13h2M14 17h2"/>',
+  commission:'<circle cx="7" cy="7" r="3.2"/><circle cx="17" cy="17" r="3.2"/><path d="M18 6L6 18"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+  finance:'<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>',
+};
+function icon(name,size=18){return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`;}
+
+/* ============================ CONFIG ============================ */
+const NAV = [
+  {id:'dashboard', label:'Dashboard', icon:'dashboard', sub:'Resumen financiero de la operación'},
+  {id:'vehicles', label:'Vehículos', icon:'vehicles', sub:'Flota registrada, propietario y conductor'},
+  {id:'contracts', label:'Contratos', icon:'contracts', sub:'Rutas fijas — marca el pago mensual de cada una', hideFor:['limited']},
+  {id:'trips', label:'Viajes de turismo', icon:'trips', sub:'Servicios ocasionales punto A – B'},
+  {id:'schedule', label:'Programación', icon:'schedule', sub:'Ocupación de la agenda de cada carro'},
+  {id:'commissions', label:'Comisiones', icon:'commission', sub:'7% por viaje para liquidar al conductor'},
+  {id:'finance', label:'Finanzas', icon:'finance', sub:'Indicadores de rentabilidad por vehículo'},
+  {id:'income', label:'Ingresos', icon:'income', sub:'Dinero recibido', hideFor:['limited']},
+  {id:'expenses', label:'Gastos', icon:'expense', sub:'Salidas de dinero'},
+  {id:'maintenance', label:'Mantenimiento', icon:'maintenance', sub:'Historial técnico por vehículo'},
+  {id:'users', label:'Usuarios', icon:'users', sub:'Accesos al sistema', ownerOnly:true},
+];
+
+// Comisión estándar del conductor sobre cada viaje de turismo realizado.
+const DRIVER_COMMISSION_RATE = 0.07;
+
+// Gastos y Mantenimiento comparten UNA sola lista de categorías
+// (kind "general"), administrable desde la app (botón "Gestionar
+// categorías" en cualquiera de las dos vistas). Vive en la base de datos,
+// no fija aquí — esta función lee la lista vigente desde state.categories
+// (cargada de /api/categories).
+function categoryNames(){ return state.categories.filter(c=>c.kind==='general').map(c=>c.name); }
+const INCOME_SOURCES = ['Contrato','Viaje de turismo','Otro'];
+const PAY_METHODS = ['Transferencia','Efectivo','Consignación','Otro'];
+const CONTRACT_STATUS = ['Activo','Pausado','Finalizado'];
+
+const FIELD_DEFS = {
+  vehicles: { title:'Vehículo', fields:[
+    {k:'plate',label:'Placa',type:'text',required:true},
+    {k:'model',label:'Modelo / referencia',type:'text',required:true},
+    {k:'capacity',label:'Capacidad (pasajeros)',type:'number'},
+    {k:'year',label:'Año',type:'number'},
+    {k:'status',label:'Estado',type:'select',options:['Activo','En taller','Inactivo'],default:'Activo'},
+    {k:'owner',label:'Propietario',type:'text'},
+    {k:'driverName',label:'Conductor asignado',type:'text'},
+    {k:'notes',label:'Notas',type:'textarea'},
+  ]},
+  contracts: { title:'Contrato', fields:[
+    {k:'client',label:'Cliente / colegio',type:'text',required:true},
+    {k:'route',label:'Ruta',type:'text',required:true},
+    {k:'vehicleId',label:'Vehículo asignado',type:'vehicle'},
+    {k:'monthlyAmount',label:'Valor mensual (COP)',type:'number',required:true},
+    {k:'billingDay',label:'Día de pago',type:'number'},
+    {k:'startDate',label:'Fecha de inicio',type:'date'},
+    {k:'endDate',label:'Fecha fin (opcional)',type:'date'},
+    {k:'status',label:'Estado',type:'select',options:CONTRACT_STATUS,default:'Activo'},
+    {k:'notes',label:'Notas',type:'textarea'},
+  ]},
+  trips: { title:'Viaje de turismo', fields:[
+    {k:'title',label:'Descripción del viaje',type:'text',required:true},
+    {k:'destination',label:'Destino',type:'text'},
+    {k:'date',label:'Fecha del viaje',type:'date',required:true},
+    {k:'vehicleId',label:'Vehículo asignado',type:'vehicle'},
+    {k:'amountCharged',label:'Valor cobrado (COP)',type:'number',required:true},
+    {k:'client',label:'Cliente / contacto',type:'text'},
+    {k:'notes',label:'Notas',type:'textarea'},
+  ]},
+  income: { title:'Ingreso', fields:[
+    {k:'date',label:'Fecha',type:'date',required:true},
+    {k:'source',label:'Origen',type:'select',options:INCOME_SOURCES,default:'Contrato'},
+    {k:'description',label:'Descripción',type:'text',required:true},
+    {k:'amount',label:'Valor (COP)',type:'number',required:true},
+    {k:'method',label:'Forma de pago',type:'select',options:PAY_METHODS,default:'Transferencia'},
+    {k:'notes',label:'Notas',type:'textarea'},
+  ]},
+  expenses: { title:'Gasto', fields:[
+    {k:'date',label:'Fecha',type:'date',required:true},
+    {k:'category',label:'Categoría',type:'select',options:()=>categoryNames(),required:true},
+    {k:'vehicleId',label:'Vehículo relacionado',type:'vehicle'},
+    {k:'description',label:'Descripción',type:'text',required:true},
+    {k:'provider',label:'Proveedor / a quién se pagó',type:'text'},
+    {k:'amount',label:'Valor (COP)',type:'number',required:true},
+    {k:'notes',label:'Notas',type:'textarea'},
+  ]},
+  maintenance: { title:'Registro de mantenimiento', fields:[
+    {k:'date',label:'Fecha',type:'date',required:true},
+    {k:'vehicleId',label:'Vehículo',type:'vehicle',required:true},
+    {k:'type',label:'Tipo de trabajo',type:'select',options:()=>categoryNames(),required:true},
+    {k:'odometer',label:'Kilometraje',type:'number'},
+    {k:'cost',label:'Costo (COP)',type:'number',required:true},
+    {k:'provider',label:'Taller / responsable',type:'text'},
+    {k:'notes',label:'Detalle del trabajo',type:'textarea'},
+  ]},
+};
+
+/* ============================ STATE ============================ */
+const state = {
+  view:'dashboard',
+  vehicles:[], contracts:[], trips:[], income:[], expenses:[], maintenance:[], contractPayments:[], tripPayments:[], users:[], categories:[],
+  finance:{month:null, vehicles:[], totals:null},
+  loaded:{vehicles:false, contracts:false, trips:false, income:false, expenses:false, maintenance:false, contractPayments:false, tripPayments:false, users:false, categories:false},
+  month: new Date().toISOString().slice(0,7),
+  sidebarOpen:false,
+};
+let commissionPeriod = 'full';     // 'q1' | 'q2' | 'full' — para la vista de Comisiones
+let scheduleVehicleId = 'all';     // filtro de vehículo en la vista de Programación
+
+const fmtCOP = n => (n||0).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
+const fmtNum = n => (n||0).toLocaleString('es-CO',{maximumFractionDigits:0});
+const monthLabel = ym => { const [y,m]=ym.split('-').map(Number); return new Date(y,m-1,1).toLocaleDateString('es-CO',{month:'long',year:'numeric'}); };
+const inMonth = (dateStr, ym) => (dateStr||'').slice(0,7) === ym;
+const shiftMonth = (ym, delta) => { const [y,m]=ym.split('-').map(Number); const d=new Date(y, m-1+delta, 1); return d.toISOString().slice(0,7); };
+const escapeHtml = s => String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function vehicleLabel(id){
+  const v = state.vehicles.find(x=>x.id===id);
+  return v ? `${v.plate}${v.model? ' · '+v.model:''}` : '—';
+}
+function paymentFor(contractId, ym){
+  return state.contractPayments.find(p => p.contractId===contractId && p.month===ym);
+}
+function tripPaymentsFor(tripId){
+  return state.tripPayments.filter(p=>p.tripId===tripId).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+}
+function tripTotals(trip){
+  const paid = tripPaymentsFor(trip.id).reduce((s,p)=>s+(Number(p.amount)||0),0);
+  const total = Number(trip.amountCharged)||0;
+  return {paid, total, balance: Math.max(0, total - paid)};
+}
+// Roles: owner (control total + único que gestiona usuarios), manager
+// (control total salvo editar/eliminar viajes ya ingresados), limited (solo
+// sus vehículos asignados), staff (heredado: solo lectura de todo).
+function canWrite(){ return !!(currentUser && currentUser.role!=='staff'); }
+function isOwner(){ return !!(currentUser && currentUser.role==='owner'); }
+function isLimited(){ return !!(currentUser && currentUser.role==='limited'); }
+function canManageUsers(){ return isOwner(); }
+function canEditTrips(){ return !!(currentUser && (currentUser.role==='owner' || currentUser.role==='limited')); }
+// Datos "maestros" (vehículos, categorías): solo propietario y gerente los
+// administran; un usuario de alcance limitado solo trabaja sus vehículos ya
+// existentes, no da de alta vehículos nuevos ni redefine categorías.
+function canManageMasterData(){ return canWrite() && !isLimited(); }
+
+/* ============================ DATA LAYER (REST) ============================ */
+async function fetchCollection(col){
+  state[col] = await apiFetch('/api/' + col);
+  state.loaded[col] = true;
+}
+async function fetchContractPayments(month){
+  state.contractPayments = await apiFetch('/api/contracts/payments?month=' + encodeURIComponent(month));
+  state.loaded.contractPayments = true;
+}
+async function fetchTripPayments(){
+  state.tripPayments = await apiFetch('/api/trips/payments');
+  state.loaded.tripPayments = true;
+}
+async function fetchFinance(month){
+  state.finance = await apiFetch('/api/finance/summary?month=' + encodeURIComponent(month));
+}
+async function fetchAll(){
+  // Un usuario 'limited' no tiene acceso a Contratos ni Ingresos (el backend
+  // los rechaza con 403), así que ni los pedimos para no romper el resto de
+  // la carga de datos.
+  const scoped = currentUser && currentUser.role === 'limited';
+  const jobs = [
+    fetchCollection('vehicles'), fetchCollection('trips'),
+    fetchCollection('expenses'), fetchCollection('maintenance'),
+    fetchCollection('categories'), fetchTripPayments(), fetchFinance(state.month),
+  ];
+  if(!scoped){
+    jobs.push(fetchCollection('contracts'), fetchCollection('income'), fetchContractPayments(state.month));
+  } else {
+    state.contracts = []; state.income = []; state.contractPayments = [];
+    state.loaded.contracts = true; state.loaded.income = true; state.loaded.contractPayments = true;
+  }
+  await Promise.all(jobs);
+}
+
+async function createRecord(col, data){
+  try{ await apiFetch('/api/'+col, {method:'POST', body: JSON.stringify(data)}); await fetchCollection(col); render(); toast('Guardado.'); }
+  catch(e){ toast(e.message || 'No se pudo guardar.'); }
+}
+async function updateRecord(col, id, data){
+  try{ await apiFetch('/api/'+col+'/'+id, {method:'PUT', body: JSON.stringify(data)}); await fetchCollection(col); render(); toast('Actualizado.'); }
+  catch(e){ toast(e.message || 'No se pudo actualizar.'); }
+}
+async function deleteRecord(col, id){
+  try{
+    await apiFetch('/api/'+col+'/'+id, {method:'DELETE'});
+    await fetchCollection(col);
+    if(col==='contracts') await fetchContractPayments(state.month);
+    if(col==='trips') await fetchTripPayments();
+    render(); toast('Eliminado.');
+  }catch(e){ toast(e.message || 'No se pudo eliminar.'); }
+}
+
+async function registerContractPayment(contract, {date, amount, method}){
+  try{
+    await apiFetch(`/api/contracts/${contract.id}/pay?month=${encodeURIComponent(state.month)}`, {
+      method:'POST', body: JSON.stringify({date, amount, method}),
+    });
+    await Promise.all([fetchContractPayments(state.month), fetchCollection('income')]);
+    render();
+    toast('Pago registrado y agregado a Ingresos.');
+  }catch(e){ toast(e.message || 'No se pudo registrar el pago.'); }
+}
+async function undoContractPayment(payment){
+  try{
+    await apiFetch(`/api/contracts/${payment.contractId}/pay?month=${encodeURIComponent(payment.month)}`, {method:'DELETE'});
+    await Promise.all([fetchContractPayments(state.month), fetchCollection('income')]);
+    render();
+    toast('Pago revertido.');
+  }catch(e){ toast(e.message || 'No se pudo revertir el pago.'); }
+}
+
+async function registerTripPayment(trip, {date, amount, method, notes}){
+  try{
+    await apiFetch(`/api/trips/${trip.id}/pay`, {
+      method:'POST', body: JSON.stringify({date, amount, method, notes}),
+    });
+    await Promise.all([fetchTripPayments(), fetchCollection('income')]);
+    toast('Pago registrado y agregado a Ingresos.');
+  }catch(e){ toast(e.message || 'No se pudo registrar el pago.'); }
+}
+async function undoTripPayment(paymentId){
+  try{
+    await apiFetch(`/api/trips/payments/${paymentId}`, {method:'DELETE'});
+    await Promise.all([fetchTripPayments(), fetchCollection('income')]);
+    toast('Pago revertido.');
+  }catch(e){ toast(e.message || 'No se pudo revertir el pago.'); }
+}
+
+function toast(msg){
+  const root = document.getElementById('toastRoot');
+  const el = document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  root.innerHTML=''; root.appendChild(el);
+  setTimeout(()=>{ el.remove(); }, 2600);
+}
+
+/* ============================ AUTH / LOGIN ============================ */
+const loginScreen = document.getElementById('loginScreen');
+const appShell = document.getElementById('appShell');
+
+document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errBox = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  errBox.hidden = true;
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try{
+    const body = new URLSearchParams();
+    body.set('username', email);
+    body.set('password', password);
+    const res = await fetch('/api/auth/login', {method:'POST', body});
+    if(!res.ok){
+      const j = await res.json().catch(()=>({detail:'Correo o contraseña incorrectos'}));
+      throw new Error(j.detail || 'Correo o contraseña incorrectos');
+    }
+    const data = await res.json();
+    authToken = data.access_token;
+    currentUser = data.user;
+    localStorage.setItem('flota_token', authToken);
+    localStorage.setItem('flota_user', JSON.stringify(currentUser));
+    await bootApp();
+  }catch(err){
+    errBox.textContent = err.message || 'No se pudo iniciar sesión.';
+    errBox.hidden = false;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+});
+
+function doLogout(){
+  authToken = null; currentUser = null;
+  localStorage.removeItem('flota_token'); localStorage.removeItem('flota_user');
+  appShell.hidden = true;
+  loginScreen.style.display = 'flex';
+  document.getElementById('loginPassword').value = '';
+}
+document.getElementById('logoutBtn').addEventListener('click', doLogout);
+
+async function bootApp(){
+  loginScreen.style.display = 'none';
+  appShell.hidden = false;
+  document.getElementById('whoami').innerHTML = `${escapeHtml(currentUser.name)}<small>${escapeHtml(currentUser.email)}</small>`;
+  try{
+    await fetchAll();
+  }catch(e){ toast(e.message || 'No se pudieron cargar los datos.'); }
+  render();
+  if(!window.__pollStarted){
+    window.__pollStarted = true;
+    setInterval(()=>{ if(authToken) fetchAll().then(render).catch(()=>{}); }, 60000);
+  }
+}
+
+/* ============================ NAV / SHELL ============================ */
+function visibleNav(){
+  const role = currentUser && currentUser.role;
+  return NAV.filter(n => {
+    if(n.ownerOnly && role!=='owner') return false;
+    if(n.hideFor && n.hideFor.includes(role)) return false;
+    return true;
+  });
+}
+function renderNav(){
+  const nav = document.getElementById('navlist');
+  nav.innerHTML = visibleNav().map(n=>`
+    <button class="navlink ${state.view===n.id?'active':''}" data-nav="${n.id}">
+      ${icon(n.icon,18)}<span>${n.label}</span>
+    </button>`).join('');
+  nav.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click', ()=>{
+    state.view = b.dataset.nav; state.sidebarOpen=false;
+    if(state.view==='users' && !state.loaded.users){ fetchCollection('users').then(render); }
+    render();
+  }));
+}
+
+function updateTopbar(){
+  const n = NAV.find(x=>x.id===state.view) || NAV[0];
+  document.getElementById('viewTitle').textContent = n.label;
+  document.getElementById('viewSub').textContent = n.sub;
+  document.getElementById('monthLabel').textContent = monthLabel(state.month);
+  const showMonth = ['dashboard','income','expenses','maintenance','contracts','commissions','finance'].includes(state.view);
+  document.getElementById('monthPicker').style.visibility = showMonth ? 'visible' : 'hidden';
+}
+
+/* ============================ GENERIC TABLE VIEW ============================ */
+function currentMonthRecords(col, dateField='date'){
+  return state[col].filter(r => inMonth(r[dateField], state.month));
+}
+
+function renderListView(colKey, opts){
+  const def = FIELD_DEFS[colKey];
+  const rows = opts.monthFiltered ? currentMonthRecords(colKey, opts.dateField||'date') : state[colKey].slice();
+  rows.sort((a,b)=> (b[opts.dateField||'date']||'').localeCompare(a[opts.dateField||'date']||'') || 0);
+  const cols = opts.columns;
+  const total = opts.totalField ? rows.reduce((s,r)=>s+(Number(r[opts.totalField])||0),0) : null;
+
+  // writable = puede crear registros nuevos; rowsWritable = puede editar/
+  // eliminar los que ya existen (para Viajes, un 'manager' puede crear pero
+  // no tocar los ya ingresados, así que ambas difieren).
+  const writable = opts.writable !== undefined ? opts.writable : canWrite();
+  const rowsWritable = opts.rowsWritable !== undefined ? opts.rowsWritable : writable;
+  let html = `<div class="view-head">
+    <div>
+      <h2>${def.title}s${opts.monthFiltered?` · <span class="muted" style="font-weight:400;">${monthLabel(state.month)}</span>`:''}</h2>
+      ${total!==null? `<div class="muted" style="font-size:13px;margin-top:2px;">${rows.length} registro(s) · total ${fmtCOP(total)}</div>`:''}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      ${canManageMasterData() && opts.manageCategoryKind ? `<button class="btn ghost" id="manageCatBtn">${icon('edit',14)} Gestionar categorías</button>` : ''}
+      ${writable ? `<button class="btn primary" id="addBtn">${icon('plus',16)} Agregar</button>` : `<span class="pill neutral">${icon('lock',12)} Solo lectura</span>`}
+    </div>
+  </div>`;
+
+  if(!rows.length){
+    html += `<div class="table-wrap"><div class="empty">${state.loaded[colKey] ? 'Sin registros todavía.'+(writable?' Agrega el primero con el botón de arriba.':'') : 'Cargando…'}</div></div>`;
+  } else {
+    html += `<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th class="${c.num?'num':''}">${c.label}</th>`).join('')}${rowsWritable?'<th></th>':''}</tr></thead><tbody>`;
+    for(const r of rows){
+      html += `<tr>${cols.map(c=>`<td class="${c.num?'num':''}">${c.render(r)}</td>`).join('')}
+        ${rowsWritable?`<td><div class="rowactions">
+          <button class="iconbtn" data-edit="${r.id}">${icon('edit',14)}</button>
+          <button class="iconbtn" data-del="${r.id}">${icon('trash',14)}</button>
+        </div></td>`:''}</tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+  return html;
+}
+
+function wireListView(colKey, opts={}){
+  const writable = opts.writable !== undefined ? opts.writable : canWrite();
+  const rowsWritable = opts.rowsWritable !== undefined ? opts.rowsWritable : writable;
+  if(writable) document.getElementById('addBtn')?.addEventListener('click', ()=> openRecordModal(colKey, null));
+  if(canManageMasterData()) document.getElementById('manageCatBtn')?.addEventListener('click', ()=> openCategoryModal(opts.manageCategoryKind));
+  if(!rowsWritable) return;
+  document.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', ()=>{
+    const rec = state[colKey].find(r=>r.id===b.dataset.edit);
+    openRecordModal(colKey, rec);
+  }));
+  document.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', ()=>{
+    if(confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) deleteRecord(colKey, b.dataset.del);
+  }));
+}
+
+/* ---- Vehicles ---- */
+function viewVehicles(){
+  const w = canManageMasterData();
+  document.getElementById('content').innerHTML = renderListView('vehicles', {
+    writable: w, rowsWritable: w,
+    columns:[
+      {label:'Placa', render:r=>`<strong>${escapeHtml(r.plate||'')}</strong>`},
+      {label:'Modelo', render:r=>escapeHtml(r.model||'—')},
+      {label:'Propietario', render:r=>escapeHtml(r.owner||'—')},
+      {label:'Conductor', render:r=>escapeHtml(r.driverName||'—')},
+      {label:'Capacidad', num:true, render:r=>r.capacity?fmtNum(r.capacity):'—'},
+      {label:'Estado', render:r=>pillForVehicleStatus(r.status)},
+    ]
+  });
+  wireListView('vehicles', {writable: w, rowsWritable: w});
+}
+function pillForVehicleStatus(s){
+  if(s==='En taller') return `<span class="pill warn">En taller</span>`;
+  if(s==='Inactivo') return `<span class="pill neutral">Inactivo</span>`;
+  return `<span class="pill income">Activo</span>`;
+}
+
+/* ---- Contracts ---- */
+function viewContracts(){
+  let html = renderListView('contracts', {
+    columns:[
+      {label:'Cliente', render:r=>`<strong>${escapeHtml(r.client||'')}</strong>`},
+      {label:'Ruta', render:r=>escapeHtml(r.route||'—')},
+      {label:'Vehículo', render:r=>escapeHtml(vehicleLabel(r.vehicleId))},
+      {label:'Valor mensual', num:true, render:r=>fmtCOP(r.monthlyAmount)},
+      {label:'Estado', render:r=> r.status==='Activo'?`<span class="pill income">Activo</span>`: r.status==='Pausado'?`<span class="pill warn">Pausado</span>`:`<span class="pill neutral">Finalizado</span>`},
+      {label:'Pago · '+monthLabel(state.month), render:r=>paymentCellHtml(r)},
+    ]
+  });
+  document.getElementById('content').innerHTML = html;
+  wireListView('contracts');
+  document.querySelectorAll('[data-pay]').forEach(b=>b.addEventListener('click', ()=>{
+    const contract = state.contracts.find(c=>c.id===b.dataset.pay);
+    if(contract) openPaymentModal(contract);
+  }));
+  document.querySelectorAll('[data-unpay]').forEach(b=>b.addEventListener('click', ()=>{
+    const contract = state.contracts.find(c=>c.id===b.dataset.unpay);
+    const pay = contract && paymentFor(contract.id, state.month);
+    if(!pay) return;
+    if(confirm(`¿Deshacer el pago de ${contract.client} para ${monthLabel(state.month)}? También se eliminará el ingreso vinculado.`)) undoContractPayment(pay);
+  }));
+}
+
+function paymentCellHtml(contract){
+  const pay = paymentFor(contract.id, state.month);
+  if(pay){
+    return `<div style="display:flex;align-items:center;gap:6px;">
+      <span class="pill income">${icon('check',11)} Pagado · ${fmtCOP(pay.amount)}</span>
+      ${canWrite()?`<button class="iconbtn" data-unpay="${contract.id}" title="Deshacer pago">${icon('undo',13)}</button>`:''}
+    </div>`;
+  }
+  if(!canWrite()) return `<span class="pill warn">Pendiente</span>`;
+  return `<button class="btn ghost" data-pay="${contract.id}" style="padding:6px 10px;font-size:12.5px;white-space:nowrap;">${icon('check',14)} Marcar pagado</button>`;
+}
+
+function openPaymentModal(contract){
+  const root = document.getElementById('modalRoot');
+  const today = new Date().toISOString().slice(0,10);
+  root.innerHTML = `<div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Registrar pago</h3>
+        <button class="close-x" id="closeModal">${icon('close',16)}</button>
+      </div>
+      <div class="modal-body">
+        <div class="muted" style="font-size:13px;margin-top:-4px;">${escapeHtml(contract.client)}${contract.route? ' · '+escapeHtml(contract.route):''} — ${monthLabel(state.month)}</div>
+        <div class="field"><label>Fecha en que pagaron *</label><input id="pay_date" type="date" value="${today}"/></div>
+        <div class="field"><label>Monto recibido (COP) *</label><input id="pay_amount" type="number" step="any" value="${contract.monthlyAmount||''}"/></div>
+        <div class="field"><label>Forma de pago</label>
+          <select id="pay_method">${PAY_METHODS.map(m=>`<option value="${m}">${m}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="cancelModal">Cancelar</button>
+        <button class="btn primary" id="saveModal">Confirmar pago</button>
+      </div>
+    </div>
+  </div>`;
+  const close = ()=>{ root.innerHTML=''; };
+  document.getElementById('closeModal').addEventListener('click', close);
+  document.getElementById('cancelModal').addEventListener('click', close);
+  document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') close(); });
+  document.getElementById('saveModal').addEventListener('click', ()=>{
+    const date = document.getElementById('pay_date').value;
+    const amount = Number(document.getElementById('pay_amount').value);
+    const method = document.getElementById('pay_method').value;
+    if(!date || !amount){ toast('Ingresa fecha y monto.'); return; }
+    registerContractPayment(contract, {date, amount, method});
+    close();
+  });
+}
+
+/* ---- Pagos y abonos de viajes de turismo ---- */
+function openTripPaymentModal(trip){
+  const root = document.getElementById('modalRoot');
+  const today = new Date().toISOString().slice(0,10);
+  const writable = canWrite();
+
+  const draw = ()=>{
+    const {paid, total, balance} = tripTotals(trip);
+    const payments = tripPaymentsFor(trip.id);
+    root.innerHTML = `<div class="overlay" id="overlay">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Pagos — ${escapeHtml(trip.title||'')}</h3>
+          <button class="close-x" id="closeModal">${icon('close',16)}</button>
+        </div>
+        <div class="modal-body">
+          <div class="muted" style="font-size:13px;margin-top:-4px;">${escapeHtml(trip.client||'—')}${trip.destination?' · '+escapeHtml(trip.destination):''} — ${trip.date||''}</div>
+          <div class="card" style="display:flex;gap:18px;flex-wrap:wrap;padding:12px 14px;">
+            <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Valor cobrado</div><div style="font-weight:600;">${fmtCOP(total)}</div></div>
+            <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Abonado</div><div style="font-weight:600;">${fmtCOP(paid)}</div></div>
+            <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Saldo</div><div style="font-weight:600;">${fmtCOP(balance)}</div></div>
+          </div>
+
+          <div class="table-wrap" style="margin-top:4px;">
+            ${payments.length ? `<table><thead><tr><th>Fecha</th><th>Monto</th><th>Método</th>${writable?'<th></th>':''}</tr></thead><tbody>${payments.map(p=>`
+              <tr><td>${p.date||'—'}</td><td>${fmtCOP(p.amount)}</td><td>${escapeHtml(p.method||'—')}</td>
+                ${writable?`<td><button class="iconbtn" data-delpay="${p.id}" title="Revertir">${icon('trash',13)}</button></td>`:''}
+              </tr>`).join('')}</tbody></table>` : `<div class="empty">Todavía no hay pagos registrados para este viaje.</div>`}
+          </div>
+
+          ${writable ? `
+          <div class="field" style="margin-top:6px;"><label>Fecha del pago *</label><input id="tp_date" type="date" value="${today}"/></div>
+          <div class="field"><label>Monto del abono (COP)</label><input id="tp_amount" type="number" step="any" placeholder="Solo si vas a registrar un abono parcial"/></div>
+          <div class="field"><label>Forma de pago</label>
+            <select id="tp_method">${PAY_METHODS.map(m=>`<option value="${m}">${m}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Notas</label><input id="tp_notes" type="text" placeholder="Opcional"/></div>
+          ` : ''}
+        </div>
+        <div class="modal-foot">
+          <button class="btn ghost" id="closeModal2">Cerrar</button>
+          ${writable && balance>0 ? `<button class="btn ghost" id="btnAbono">${icon('plus',14)} Registrar abono</button>` : ''}
+          ${writable && balance>0 ? `<button class="btn primary" id="btnPagoTotal">${icon('check',14)} Registrar pago total (${fmtCOP(balance)})</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+    const close = ()=>{ root.innerHTML=''; render(); };
+    document.getElementById('closeModal').addEventListener('click', close);
+    document.getElementById('closeModal2').addEventListener('click', close);
+    document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') close(); });
+
+    document.querySelectorAll('[data-delpay]').forEach(b=>b.addEventListener('click', async ()=>{
+      if(!confirm('¿Revertir este pago? También se eliminará el ingreso vinculado.')) return;
+      await undoTripPayment(b.dataset.delpay);
+      draw();
+    }));
+
+    document.getElementById('btnPagoTotal')?.addEventListener('click', async ()=>{
+      const date = document.getElementById('tp_date').value;
+      const method = document.getElementById('tp_method').value;
+      const notes = document.getElementById('tp_notes').value;
+      if(!date){ toast('Ingresa la fecha del pago.'); return; }
+      await registerTripPayment(trip, {date, amount: balance, method, notes});
+      draw();
+    });
+
+    document.getElementById('btnAbono')?.addEventListener('click', async ()=>{
+      const date = document.getElementById('tp_date').value;
+      const amount = Number(document.getElementById('tp_amount').value);
+      const method = document.getElementById('tp_method').value;
+      const notes = document.getElementById('tp_notes').value;
+      if(!date || !amount){ toast('Ingresa fecha y el monto del abono.'); return; }
+      if(amount > balance){ toast(`El abono no puede ser mayor al saldo pendiente (${fmtCOP(balance)}).`); return; }
+      await registerTripPayment(trip, {date, amount, method, notes});
+      draw();
+    });
+  };
+  draw();
+}
+
+/* ---- Trips ---- */
+function viewTrips(){
+  // Un 'manager' puede crear viajes nuevos, pero no editar ni eliminar los
+  // que ya están ingresados (solo propietario y un 'limited' dentro de su
+  // alcance pueden).
+  const rowsW = canEditTrips();
+  document.getElementById('content').innerHTML = renderListView('trips', {
+    rowsWritable: rowsW,
+    columns:[
+      {label:'Fecha', render:r=>r.date||'—'},
+      {label:'Viaje', render:r=>`<strong>${escapeHtml(r.title||'')}</strong>${r.destination?`<div class="muted" style="font-size:12px;">${escapeHtml(r.destination)}</div>`:''}`},
+      {label:'Vehículo', render:r=>escapeHtml(vehicleLabel(r.vehicleId))},
+      {label:'Valor cobrado', num:true, render:r=>fmtCOP(r.amountCharged)},
+      {label:'Comisión conductor (7%)', num:true, render:r=>fmtCOP(r.driverCommission)},
+      {label:'Pago', render:r=>tripPaymentCellHtml(r)},
+    ]
+  });
+  wireListView('trips', {rowsWritable: rowsW});
+  document.querySelectorAll('[data-trippay]').forEach(b=>b.addEventListener('click', ()=>{
+    const trip = state.trips.find(t=>t.id===b.dataset.trippay);
+    if(trip) openTripPaymentModal(trip);
+  }));
+}
+
+function tripPaymentCellHtml(trip){
+  const {paid, total, balance} = tripTotals(trip);
+  let pill;
+  if(total<=0){
+    pill = `<span class="pill neutral">Sin valor</span>`;
+  } else if(paid<=0){
+    pill = `<span class="pill warn">Pendiente</span>`;
+  } else if(balance<=0){
+    pill = `<span class="pill income">${icon('check',11)} Pagado · ${fmtCOP(paid)}</span>`;
+  } else {
+    pill = `<span class="pill warn">Abonado ${fmtCOP(paid)} de ${fmtCOP(total)}</span>`;
+  }
+  return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+    ${pill}
+    <button class="btn ghost" data-trippay="${trip.id}" style="padding:5px 9px;font-size:12px;white-space:nowrap;">${icon('edit',12)} ${canWrite()?'Registrar / ver pagos':'Ver pagos'}</button>
+  </div>`;
+}
+
+/* ---- Programación (agenda por vehículo) ---- */
+function daysUntil(dateStr){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr+'T00:00:00');
+  return Math.round((d-today)/86400000);
+}
+function scheduleBadge(dateStr){
+  const diff = daysUntil(dateStr);
+  if(diff<0) return `<span class="pill neutral">Realizado</span>`;
+  if(diff===0) return `<span class="pill warn">Hoy</span>`;
+  if(diff<=7) return `<span class="pill warn">En ${diff} día${diff===1?'':'s'}</span>`;
+  return `<span class="pill income">En ${diff} días</span>`;
+}
+function viewSchedule(){
+  const today = new Date().toISOString().slice(0,10);
+  const upcomingByVehicle = {};
+  state.vehicles.forEach(v=>{ upcomingByVehicle[v.id] = 0; });
+  state.trips.forEach(t=>{
+    if(t.vehicleId && t.date>=today) upcomingByVehicle[t.vehicleId] = (upcomingByVehicle[t.vehicleId]||0)+1;
+  });
+
+  let rows = state.trips.slice().sort((a,b)=> (a.date||'').localeCompare(b.date||''));
+  if(scheduleVehicleId!=='all') rows = rows.filter(t=>t.vehicleId===scheduleVehicleId);
+
+  let html = `<div class="view-head">
+    <div>
+      <h2>Programación de viajes</h2>
+      <div class="muted" style="font-size:13px;margin-top:2px;">Todos los viajes programados, ordenados por fecha — así ves qué tan ocupada está la agenda de cada carro, sin importar el mes.</div>
+    </div>
+    <select id="scheduleVehicleSelect" style="padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--surface);font-weight:600;font-size:13px;color:var(--ink);">
+      <option value="all">Todos los vehículos</option>
+      ${state.vehicles.map(v=>`<option value="${v.id}" ${scheduleVehicleId===v.id?'selected':''}>${escapeHtml(v.plate)}${v.model?' · '+escapeHtml(v.model):''}</option>`).join('')}
+    </select>
+  </div>`;
+
+  if(state.vehicles.length){
+    html += `<div class="legend" style="margin-bottom:14px;">${state.vehicles.map(v=>`<span class="pill ${upcomingByVehicle[v.id]?'income':'neutral'}">${escapeHtml(v.plate)} · ${upcomingByVehicle[v.id]||0} viaje(s) por venir</span>`).join('')}</div>`;
+  }
+
+  if(!rows.length){
+    html += `<div class="table-wrap"><div class="empty">${state.loaded.trips?'No hay viajes programados todavía.':'Cargando…'}</div></div>`;
+  } else {
+    html += `<div class="table-wrap"><table><thead><tr><th>Fecha</th><th></th><th>Viaje</th><th>Vehículo</th><th class="num">Valor</th></tr></thead><tbody>`;
+    rows.forEach(t=>{
+      html += `<tr>
+        <td>${t.date||'—'}</td>
+        <td>${scheduleBadge(t.date)}</td>
+        <td><strong>${escapeHtml(t.title||'')}</strong>${t.destination?`<div class="muted" style="font-size:12px;">${escapeHtml(t.destination)}</div>`:''}</td>
+        <td>${escapeHtml(vehicleLabel(t.vehicleId))}</td>
+        <td class="num">${fmtCOP(t.amountCharged)}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  document.getElementById('content').innerHTML = html;
+  document.getElementById('scheduleVehicleSelect').addEventListener('change', (e)=>{
+    scheduleVehicleId = e.target.value; render();
+  });
+}
+
+/* ---- Comisiones de conductores ---- */
+function daysInMonth(ym){ const [y,m]=ym.split('-').map(Number); return new Date(y,m,0).getDate(); }
+function inPeriod(dateStr, ym, period){
+  if(!inMonth(dateStr, ym)) return false;
+  if(period==='full') return true;
+  const day = Number((dateStr||'').slice(8,10));
+  if(period==='q1') return day<=15;
+  if(period==='q2') return day>=16;
+  return true;
+}
+function viewCommissions(){
+  const rows = state.trips.filter(t=>inPeriod(t.date, state.month, commissionPeriod));
+  const byVehicle = {};
+  rows.forEach(t=>{
+    const key = t.vehicleId || '_sin_vehiculo';
+    if(!byVehicle[key]) byVehicle[key] = {vehicleId:t.vehicleId, count:0, total:0, commission:0};
+    byVehicle[key].count++;
+    byVehicle[key].total += Number(t.amountCharged)||0;
+    byVehicle[key].commission += Number(t.driverCommission)||0;
+  });
+  const groups = Object.values(byVehicle).sort((a,b)=>b.commission-a.commission);
+  const totalCommission = rows.reduce((s,t)=>s+(Number(t.driverCommission)||0),0);
+  const totalRevenue = rows.reduce((s,t)=>s+(Number(t.amountCharged)||0),0);
+  const periodLabel = commissionPeriod==='q1' ? 'Quincena 1 (día 1 al 15)' : commissionPeriod==='q2' ? 'Quincena 2 (día 16 a fin de mes)' : 'Mes completo';
+
+  let html = `<div class="view-head">
+    <div>
+      <h2>Comisiones de conductores</h2>
+      <div class="muted" style="font-size:13px;margin-top:2px;">${monthLabel(state.month)} · ${periodLabel} · ${rows.length} viaje(s) · comisión estándar ${(DRIVER_COMMISSION_RATE*100).toFixed(0)}%</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="btn ${commissionPeriod==='q1'?'primary':'ghost'}" data-period="q1">Quincena 1</button>
+      <button class="btn ${commissionPeriod==='q2'?'primary':'ghost'}" data-period="q2">Quincena 2</button>
+      <button class="btn ${commissionPeriod==='full'?'primary':'ghost'}" data-period="full">Mes completo</button>
+    </div>
+  </div>`;
+
+  html += `<div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px;">
+    <div class="card kpi"><div class="lbl">Facturado en viajes</div><div class="val">${fmtCOP(totalRevenue)}</div></div>
+    <div class="card kpi"><div class="lbl">Comisión total a liquidar</div><div class="val" style="color:var(--accent);">${fmtCOP(totalCommission)}</div></div>
+    <div class="card kpi"><div class="lbl">Viajes en el periodo</div><div class="val" style="font-size:19px;">${rows.length}</div></div>
+  </div>`;
+
+  if(!groups.length){
+    html += `<div class="table-wrap"><div class="empty">Sin viajes registrados en este periodo.</div></div>`;
+  } else {
+    html += `<div class="table-wrap"><table><thead><tr><th>Vehículo</th><th>Conductor</th><th>Propietario</th><th class="num">Viajes</th><th class="num">Facturado</th><th class="num">Comisión (${(DRIVER_COMMISSION_RATE*100).toFixed(0)}%)</th></tr></thead><tbody>`;
+    groups.forEach(g=>{
+      const v = state.vehicles.find(x=>x.id===g.vehicleId);
+      html += `<tr>
+        <td><strong>${v?escapeHtml(v.plate):'Sin vehículo asignado'}</strong>${v&&v.model?`<div class="muted" style="font-size:12px;">${escapeHtml(v.model)}</div>`:''}</td>
+        <td>${v&&v.driverName?escapeHtml(v.driverName):'—'}</td>
+        <td>${v&&v.owner?escapeHtml(v.owner):'—'}</td>
+        <td class="num">${g.count}</td>
+        <td class="num">${fmtCOP(g.total)}</td>
+        <td class="num"><strong>${fmtCOP(g.commission)}</strong></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  html += `<div class="card" style="margin-top:14px;">
+    <h3>Cómo liquidar</h3>
+    <div class="cardsub">Este valor se calcula solo: es el ${(DRIVER_COMMISSION_RATE*100).toFixed(0)}% de cada viaje registrado en "Viajes de turismo", en el periodo que elijas arriba.</div>
+    <div class="muted" style="font-size:13px;">Cuando le pagues la quincena al conductor, regístralo en <strong>Gastos</strong> con la categoría <strong>"Quincena conductor"</strong> para que quede reflejado en el balance del mes.</div>
+  </div>`;
+
+  document.getElementById('content').innerHTML = html;
+  document.querySelectorAll('[data-period]').forEach(b=>b.addEventListener('click', ()=>{
+    commissionPeriod = b.dataset.period; render();
+  }));
+}
+
+/* ---- Finance ---- */
+function viewFinance(){
+  const data = state.finance || {vehicles:[], totals:null};
+  const rows = data.vehicles || [];
+  const totals = data.totals;
+
+  let html = `<div class="view-head">
+    <div>
+      <h2>Finanzas</h2>
+      <div class="muted" style="font-size:13px;margin-top:2px;">${monthLabel(state.month)} · Indicadores de rentabilidad por vehículo</div>
+    </div>
+  </div>`;
+
+  if(totals){
+    const marginTxt = totals.margin===null||totals.margin===undefined ? '—' : totals.margin.toFixed(1)+'%';
+    html += `<div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px;">
+      <div class="card kpi"><div class="lbl">Ingresos</div><div class="val">${fmtCOP(totals.income)}</div></div>
+      <div class="card kpi"><div class="lbl">Gastos + Mantenimiento</div><div class="val">${fmtCOP((totals.expenses||0)+(totals.maintenance||0))}</div></div>
+      <div class="card kpi"><div class="lbl">Utilidad neta</div><div class="val" style="color:${totals.net>=0?'var(--accent)':'var(--danger,#e5484d)'};">${fmtCOP(totals.net)}</div></div>
+      <div class="card kpi"><div class="lbl">Margen</div><div class="val" style="font-size:19px;">${marginTxt}</div></div>
+    </div>`;
+  }
+
+  if(!rows.length){
+    html += `<div class="table-wrap"><div class="empty">${state.loaded && state.loaded.finance===false ? 'Cargando…' : 'Sin datos para este periodo.'}</div></div>`;
+  } else {
+    html += `<div class="table-wrap"><table><thead><tr>
+      <th>Vehículo</th><th class="num">Viajes</th><th class="num">Ing. viajes</th><th class="num">Ing. contrato</th>
+      <th class="num">Gastos</th><th class="num">Mantenimiento</th><th class="num">Comisión conductor</th>
+      <th class="num">Utilidad neta</th><th class="num">Margen</th>
+    </tr></thead><tbody>`;
+    rows.forEach(r=>{
+      const marginTxt = r.margin===null||r.margin===undefined ? '—' : r.margin.toFixed(1)+'%';
+      html += `<tr>
+        <td><strong>${escapeHtml(r.plate)}</strong>${r.model?`<div class="muted" style="font-size:12px;">${escapeHtml(r.model)}</div>`:''}</td>
+        <td class="num">${r.tripCount}</td>
+        <td class="num">${fmtCOP(r.tripIncome)}</td>
+        <td class="num">${fmtCOP(r.contractIncome)}</td>
+        <td class="num">${fmtCOP(r.expenses)}</td>
+        <td class="num">${fmtCOP(r.maintenance)}</td>
+        <td class="num">${fmtCOP(r.driverCommission)}</td>
+        <td class="num" style="color:${r.net>=0?'var(--accent)':'var(--danger,#e5484d)'};"><strong>${fmtCOP(r.net)}</strong></td>
+        <td class="num">${marginTxt}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  html += `<div class="card" style="margin-top:14px;">
+    <h3>Cómo se calcula</h3>
+    <div class="cardsub">Ingresos = viajes facturados en el mes + pagos de contrato registrados en el mes. Utilidad neta = ingresos − gastos − mantenimiento (la comisión del conductor se muestra aparte, informativa).</div>
+  </div>`;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+/* ---- Income ---- */
+function viewIncome(){
+  document.getElementById('content').innerHTML = renderListView('income', {
+    monthFiltered:true, totalField:'amount',
+    columns:[
+      {label:'Fecha', render:r=>r.date||'—'},
+      {label:'Origen', render:r=>`<span class="pill income">${escapeHtml(r.source||'—')}</span>`},
+      {label:'Descripción', render:r=>escapeHtml(r.description||'')},
+      {label:'Método', render:r=>escapeHtml(r.method||'—')},
+      {label:'Valor', num:true, render:r=>fmtCOP(r.amount)},
+    ]
+  });
+  wireListView('income');
+}
+
+/* ---- Expenses ---- */
+function viewExpenses(){
+  document.getElementById('content').innerHTML = renderListView('expenses', {
+    monthFiltered:true, totalField:'amount', manageCategoryKind:'general',
+    columns:[
+      {label:'Fecha', render:r=>r.date||'—'},
+      {label:'Categoría', render:r=>`<span class="pill expense">${escapeHtml(r.category||'—')}</span>`},
+      {label:'Descripción', render:r=>escapeHtml(r.description||'')},
+      {label:'Vehículo', render:r=>escapeHtml(vehicleLabel(r.vehicleId))},
+      {label:'Valor', num:true, render:r=>fmtCOP(r.amount)},
+    ]
+  });
+  wireListView('expenses', {manageCategoryKind:'general'});
+}
+
+/* ---- Maintenance ---- */
+function viewMaintenance(){
+  const container = document.getElementById('content');
+  const monthRows = currentMonthRecords('maintenance');
+  const counts = {};
+  monthRows.forEach(r=>{ counts[r.type] = (counts[r.type]||0)+1; });
+  const summaryChips = Object.keys(counts).length
+    ? `<div class="legend" style="margin:0 0 14px;">${Object.entries(counts).map(([t,c])=>`<span class="pill neutral">${escapeHtml(t)} · ${c}x</span>`).join('')}</div>`
+    : '';
+  container.innerHTML = summaryChips + renderListView('maintenance', {
+    monthFiltered:true, totalField:'cost', manageCategoryKind:'general',
+    columns:[
+      {label:'Fecha', render:r=>r.date||'—'},
+      {label:'Vehículo', render:r=>escapeHtml(vehicleLabel(r.vehicleId))},
+      {label:'Tipo de trabajo', render:r=>escapeHtml(r.type||'—')},
+      {label:'Km', num:true, render:r=>r.odometer?fmtNum(r.odometer):'—'},
+      {label:'Taller', render:r=>escapeHtml(r.provider||'—')},
+      {label:'Costo', num:true, render:r=>fmtCOP(r.cost)},
+    ]
+  });
+  wireListView('maintenance', {manageCategoryKind:'general'});
+}
+
+/* ---- Users (admin only) ---- */
+const ROLE_LABELS = {
+  owner:   {label:'Propietario', pill:'income',  hint:'Control total y único que administra usuarios'},
+  manager: {label:'Gerente',     pill:'income',  hint:'Control total, salvo editar/eliminar viajes ya ingresados'},
+  limited: {label:'Alcance limitado', pill:'warn', hint:'Solo sus vehículos asignados'},
+  staff:   {label:'Solo lectura', pill:'neutral', hint:'Solo puede ver la información'},
+};
+function roleBadge(role){
+  const r = ROLE_LABELS[role] || ROLE_LABELS.staff;
+  return `<span class="pill ${r.pill}">${r.label}</span>`;
+}
+
+function viewUsers(){
+  const rows = state.users.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  let html = `<div class="view-head">
+    <div><h2>Usuarios</h2><div class="muted" style="font-size:13px;margin-top:2px;">Solo el propietario puede crear, editar o eliminar usuarios.</div></div>
+    <button class="btn primary" id="addUserBtn">${icon('plus',16)} Nuevo usuario</button>
+  </div>`;
+  if(!rows.length){
+    html += `<div class="table-wrap"><div class="empty">${state.loaded.users?'Sin usuarios adicionales.':'Cargando…'}</div></div>`;
+  } else {
+    html += `<div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Vehículos</th><th></th></tr></thead><tbody>`;
+    for(const u of rows){
+      const vehText = u.role==='limited'
+        ? (u.vehicleIds && u.vehicleIds.length ? u.vehicleIds.map(id=>escapeHtml(vehicleLabel(id))).join(', ') : '<span class="muted">Sin asignar</span>')
+        : '<span class="muted">Todos</span>';
+      html += `<tr>
+        <td><strong>${escapeHtml(u.name)}</strong></td>
+        <td>${escapeHtml(u.email)}</td>
+        <td>${roleBadge(u.role)}</td>
+        <td style="font-size:12.5px;">${vehText}</td>
+        <td><div class="rowactions">
+          <button class="iconbtn" data-edituser="${u.id}">${icon('edit',14)}</button>
+          ${u.id===currentUser.id?'':`<button class="iconbtn" data-deluser="${u.id}">${icon('trash',14)}</button>`}
+        </div></td>
+      </tr>`;
+    }
+    html += `</tbody></table></div>`;
+  }
+  document.getElementById('content').innerHTML = html;
+  document.getElementById('addUserBtn').addEventListener('click', openUserModal);
+  document.querySelectorAll('[data-edituser]').forEach(b=>b.addEventListener('click', ()=>{
+    const u = state.users.find(x=>x.id===b.dataset.edituser);
+    if(u) openUserRoleModal(u);
+  }));
+  document.querySelectorAll('[data-deluser]').forEach(b=>b.addEventListener('click', async ()=>{
+    if(!confirm('¿Eliminar este usuario? Ya no podrá iniciar sesión.')) return;
+    try{ await apiFetch('/api/users/'+b.dataset.deluser, {method:'DELETE'}); await fetchCollection('users'); render(); toast('Usuario eliminado.'); }
+    catch(e){ toast(e.message || 'No se pudo eliminar.'); }
+  }));
+}
+
+function roleSelectHtml(id, selected){
+  return `<select id="${id}">
+    <option value="owner" ${selected==='owner'?'selected':''}>Propietario — control total</option>
+    <option value="manager" ${selected==='manager'?'selected':''}>Gerente — todo, salvo editar/eliminar viajes</option>
+    <option value="limited" ${selected==='limited'?'selected':''}>Alcance limitado — solo sus vehículos</option>
+    <option value="staff" ${selected==='staff'?'selected':''}>Solo lectura</option>
+  </select>`;
+}
+function vehicleChecklistHtml(idPrefix, selectedIds){
+  const sel = new Set(selectedIds||[]);
+  if(!state.vehicles.length) return `<div class="muted" style="font-size:12.5px;">No hay vehículos registrados todavía.</div>`;
+  return state.vehicles.map(v=>`
+    <label style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13.5px;">
+      <input type="checkbox" id="${idPrefix}_${v.id}" value="${v.id}" ${sel.has(v.id)?'checked':''}/>
+      ${escapeHtml(v.plate)}${v.model?' · '+escapeHtml(v.model):''}
+    </label>`).join('');
+}
+function readVehicleChecklist(idPrefix){
+  return state.vehicles.filter(v=>document.getElementById(`${idPrefix}_${v.id}`)?.checked).map(v=>v.id);
+}
+
+function openUserModal(){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `<div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="modal-head"><h3>Nuevo usuario</h3><button class="close-x" id="closeModal">${icon('close',16)}</button></div>
+      <div class="modal-body">
+        <div class="field"><label>Nombre *</label><input id="u_name" type="text"/></div>
+        <div class="field"><label>Correo *</label><input id="u_email" type="email"/></div>
+        <div class="field"><label>Contraseña temporal *</label><input id="u_password" type="text"/></div>
+        <div class="field"><label>Rol</label>${roleSelectHtml('u_role','staff')}</div>
+        <div class="field" id="u_vehiclesField" hidden>
+          <label>Vehículos que puede ver y trabajar</label>
+          <div id="u_vehicles">${vehicleChecklistHtml('u_veh', [])}</div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="cancelModal">Cancelar</button>
+        <button class="btn primary" id="saveModal">Crear usuario</button>
+      </div>
+    </div>
+  </div>`;
+  const close = ()=>{ root.innerHTML=''; };
+  document.getElementById('closeModal').addEventListener('click', close);
+  document.getElementById('cancelModal').addEventListener('click', close);
+  document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') close(); });
+  const roleSel = document.getElementById('u_role');
+  const vehField = document.getElementById('u_vehiclesField');
+  const syncVehField = ()=>{ vehField.hidden = roleSel.value !== 'limited'; };
+  roleSel.addEventListener('change', syncVehField);
+  syncVehField();
+  document.getElementById('saveModal').addEventListener('click', async ()=>{
+    const name = document.getElementById('u_name').value.trim();
+    const email = document.getElementById('u_email').value.trim();
+    const password = document.getElementById('u_password').value;
+    const role = roleSel.value;
+    if(!name || !email || !password){ toast('Completa todos los campos.'); return; }
+    const vehicleIds = role==='limited' ? readVehicleChecklist('u_veh') : undefined;
+    try{
+      await apiFetch('/api/users', {method:'POST', body: JSON.stringify({name,email,password,role,vehicleIds})});
+      await fetchCollection('users'); render(); toast('Usuario creado.'); close();
+    }catch(e){ toast(e.message || 'No se pudo crear el usuario.'); }
+  });
+}
+
+function openUserRoleModal(u){
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `<div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="modal-head"><h3>Editar acceso — ${escapeHtml(u.name)}</h3><button class="close-x" id="closeModal">${icon('close',16)}</button></div>
+      <div class="modal-body">
+        <div class="muted" style="font-size:13px;margin-top:-4px;">${escapeHtml(u.email)}</div>
+        <div class="field"><label>Rol</label>${roleSelectHtml('r_role', u.role)}</div>
+        <div class="field" id="r_vehiclesField" hidden>
+          <label>Vehículos que puede ver y trabajar</label>
+          <div id="r_vehicles">${vehicleChecklistHtml('r_veh', u.vehicleIds)}</div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="cancelModal">Cancelar</button>
+        <button class="btn primary" id="saveModal">Guardar</button>
+      </div>
+    </div>
+  </div>`;
+  const close = ()=>{ root.innerHTML=''; };
+  document.getElementById('closeModal').addEventListener('click', close);
+  document.getElementById('cancelModal').addEventListener('click', close);
+  document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') close(); });
+  const roleSel = document.getElementById('r_role');
+  const vehField = document.getElementById('r_vehiclesField');
+  const syncVehField = ()=>{ vehField.hidden = roleSel.value !== 'limited'; };
+  roleSel.addEventListener('change', syncVehField);
+  syncVehField();
+  document.getElementById('saveModal').addEventListener('click', async ()=>{
+    const role = roleSel.value;
+    const vehicleIds = role==='limited' ? readVehicleChecklist('r_veh') : undefined;
+    try{
+      await apiFetch(`/api/users/${u.id}/role`, {method:'PUT', body: JSON.stringify({role, vehicleIds})});
+      await fetchCollection('users'); render(); toast('Acceso actualizado.'); close();
+    }catch(e){ toast(e.message || 'No se pudo actualizar.'); }
+  });
+}
+
+/* ---- Categorías (Gastos / Mantenimiento) — administrables ---- */
+function openCategoryModal(kind){
+  const label = 'categorías de Gastos y Mantenimiento';
+  const root = document.getElementById('modalRoot');
+
+  const draw = ()=>{
+    const items = state.categories.filter(c=>c.kind===kind).sort((a,b)=>a.name.localeCompare(b.name));
+    root.innerHTML = `<div class="overlay" id="overlay">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Gestionar ${label}</h3>
+          <button class="close-x" id="closeModal">${icon('close',16)}</button>
+        </div>
+        <div class="modal-body">
+          <div class="muted" style="font-size:12.5px;margin-top:-4px;">Esta lista es la misma para Gastos y Mantenimiento. Lo que agregues o elimines aquí se refleja al instante en el desplegable del formulario, para todos los usuarios.</div>
+          <div class="field" style="display:flex;gap:8px;align-items:flex-end;">
+            <div style="flex:1;"><label>Nueva categoría</label>
+              <input id="newCatName" type="text" placeholder="Ej: Parqueadero"/>
+            </div>
+            <button class="btn primary" id="addCatBtn" style="white-space:nowrap;">${icon('plus',14)} Agregar</button>
+          </div>
+          <div class="table-wrap" style="margin-top:8px;">
+            ${items.length ? `<table><tbody>${items.map(c=>`
+              <tr><td>${escapeHtml(c.name)}</td>
+                <td style="width:1%;"><button class="iconbtn" data-delcat="${c.id}">${icon('trash',14)}</button></td>
+              </tr>`).join('')}</tbody></table>` : `<div class="empty">Todavía no hay ${label}. Agrega la primera arriba.</div>`}
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn ghost" id="closeModal2">Cerrar</button>
+        </div>
+      </div>
+    </div>`;
+    const close = ()=>{ root.innerHTML=''; render(); };
+    document.getElementById('closeModal').addEventListener('click', close);
+    document.getElementById('closeModal2').addEventListener('click', close);
+    document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') close(); });
+    document.getElementById('addCatBtn').addEventListener('click', async ()=>{
+      const name = document.getElementById('newCatName').value.trim();
+      if(!name){ toast('Escribe un nombre.'); return; }
+      try{
+        await apiFetch('/api/categories', {method:'POST', body: JSON.stringify({kind, name})});
+        await fetchCollection('categories');
+        toast('Agregado.');
+        draw();
+      }catch(e){ toast(e.message || 'No se pudo agregar.'); }
+    });
+    document.querySelectorAll('[data-delcat]').forEach(b=>b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar esta opción de la lista? Los registros ya guardados con este valor no cambian.')) return;
+      try{
+        await apiFetch('/api/categories/'+b.dataset.delcat, {method:'DELETE'});
+        await fetchCollection('categories');
+        toast('Eliminado.');
+        draw();
+      }catch(e){ toast(e.message || 'No se pudo eliminar.'); }
+    }));
+  };
+  draw();
+}
+
+/* ============================ MODAL / FORM ============================ */
+function openRecordModal(colKey, rec){
+  const def = FIELD_DEFS[colKey];
+  const isEdit = !!rec;
+  const root = document.getElementById('modalRoot');
+
+  const fieldHtml = f => {
+    const val = rec ? (rec[f.k] ?? '') : (f.default ?? (f.type==='date' ? (colKey==='contracts'?'':(state.month+'-01')) : ''));
+    if(f.type==='select'){
+      const opts = typeof f.options === 'function' ? f.options() : f.options;
+      return `<div class="field"><label>${f.label}${f.required?' *':''}</label>
+        <select id="fld_${f.k}" ${f.required?'required':''}>
+          <option value="">Selecciona…</option>
+          ${opts.map(o=>`<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')}
+        </select></div>`;
+    }
+    if(f.type==='vehicle'){
+      return `<div class="field"><label>${f.label}${f.required?' *':''}</label>
+        <select id="fld_${f.k}" ${f.required?'required':''}>
+          <option value="">Sin asignar</option>
+          ${state.vehicles.map(v=>`<option value="${v.id}" ${val===v.id?'selected':''}>${escapeHtml(v.plate)}${v.model?' · '+escapeHtml(v.model):''}</option>`).join('')}
+        </select></div>`;
+    }
+    if(f.type==='textarea'){
+      return `<div class="field"><label>${f.label}</label><textarea id="fld_${f.k}" rows="2">${escapeHtml(val)}</textarea></div>`;
+    }
+    return `<div class="field"><label>${f.label}${f.required?' *':''}</label>
+      <input id="fld_${f.k}" type="${f.type}" ${f.required?'required':''} value="${escapeHtml(val)}" ${f.type==='number'?'step="any"':''}/></div>`;
+  };
+
+  root.innerHTML = `<div class="overlay" id="overlay">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>${isEdit?'Editar':'Nuevo'} ${def.title.toLowerCase()}</h3>
+        <button class="close-x" id="closeModal">${icon('close',16)}</button>
+      </div>
+      <div class="modal-body" id="modalFields">
+        ${def.fields.map(fieldHtml).join('')}
+      </div>
+      <div class="modal-foot">
+        ${isEdit?`<button class="btn" id="delInModal" style="margin-right:auto;color:var(--expense);">Eliminar</button>`:''}
+        <button class="btn ghost" id="cancelModal">Cancelar</button>
+        <button class="btn primary" id="saveModal">${isEdit?'Guardar cambios':'Guardar'}</button>
+      </div>
+    </div>
+  </div>`;
+
+  const close = ()=>{ root.innerHTML=''; };
+  document.getElementById('closeModal').addEventListener('click', close);
+  document.getElementById('cancelModal').addEventListener('click', close);
+  document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') close(); });
+  if(isEdit){
+    document.getElementById('delInModal').addEventListener('click', ()=>{
+      if(confirm('¿Eliminar este registro?')){ deleteRecord(colKey, rec.id); close(); }
+    });
+  }
+  document.getElementById('saveModal').addEventListener('click', ()=>{
+    const data = {};
+    let missing = false;
+    for(const f of def.fields){
+      const el = document.getElementById('fld_'+f.k);
+      let v = el.value;
+      if(f.required && !v){ el.style.outline='2px solid var(--expense)'; missing = true; continue; }
+      if(f.type==='number') v = v===''? null : Number(v);
+      else if(v==='') v = null; // fechas / selects opcionales vacíos -> null, no ""
+      data[f.k] = v;
+    }
+    if(missing){ toast('Completa los campos obligatorios.'); return; }
+    if(isEdit) updateRecord(colKey, rec.id, data);
+    else createRecord(colKey, data);
+    close();
+  });
+}
+
+/* ============================ DASHBOARD ============================ */
+function monthTotals(ym){
+  const inc = state.income.filter(r=>inMonth(r.date, ym)).reduce((s,r)=>s+(Number(r.amount)||0),0);
+  const exp = state.expenses.filter(r=>inMonth(r.date, ym)).reduce((s,r)=>s+(Number(r.amount)||0),0);
+  return {inc, exp, profit: inc-exp};
+}
+function last6Months(ym){
+  const arr = [];
+  for(let i=5;i>=0;i--) arr.push(shiftMonth(ym,-i));
+  return arr;
+}
+function expenseByCategory(ym){
+  const map = {};
+  state.expenses.filter(r=>inMonth(r.date, ym)).forEach(r=>{
+    const c = r.category || 'Otros';
+    map[c] = (map[c]||0) + (Number(r.amount)||0);
+  });
+  return Object.entries(map).sort((a,b)=>b[1]-a[1]);
+}
+
+const PALETTE = ['#6f9bc0','#4f9d84','#c29a52','#8fa6c9','#7fb0a6','#c9ab7a','#6f8fae','#a68fb0','#87a6c4','#b3a07a','#6fa3ab','#9aa87e'];
+
+function svgDonut(data, size=180){
+  const total = data.reduce((s,[,v])=>s+v,0) || 1;
+  const r = size/2, rInner = r*0.62, cx=r, cy=r;
+  let angle = -Math.PI/2;
+  let paths = '';
+  data.forEach(([label,val],i)=>{
+    const frac = val/total;
+    const a0 = angle, a1 = angle + frac*Math.PI*2;
+    angle = a1;
+    const large = (a1-a0) > Math.PI ? 1 : 0;
+    const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0);
+    const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+    const ix0 = cx + rInner*Math.cos(a1), iy0 = cy + rInner*Math.sin(a1);
+    const ix1 = cx + rInner*Math.cos(a0), iy1 = cy + rInner*Math.sin(a0);
+    if(frac>=0.999){
+      paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${PALETTE[i%PALETTE.length]}"/><circle cx="${cx}" cy="${cy}" r="${rInner}" fill="var(--surface)"/>`;
+    } else {
+      paths += `<path d="M${x0} ${y0} A${r} ${r} 0 ${large} 1 ${x1} ${y1} L${ix0} ${iy0} A${rInner} ${rInner} 0 ${large} 0 ${ix1} ${iy1} Z" fill="${PALETTE[i%PALETTE.length]}"/>`;
+    }
+  });
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${paths}</svg>`;
+}
+
+function svgBars(months){
+  const w = 560, h = 220, pad = 34, gap = 18;
+  const maxVal = Math.max(1, ...months.map(m=>Math.max(m.inc,m.exp)));
+  const groupW = (w - pad*2) / months.length;
+  const barW = (groupW - gap) / 2.4;
+  let bars = '';
+  let labels = '';
+  months.forEach((m,i)=>{
+    const gx = pad + i*groupW;
+    const hInc = (m.inc/maxVal) * (h - pad*2);
+    const hExp = (m.exp/maxVal) * (h - pad*2);
+    const baseline = h - pad;
+    bars += `<rect x="${gx+4}" y="${baseline-hInc}" width="${barW}" height="${hInc}" rx="3" fill="var(--income,#2e7d4f)"></rect>`;
+    bars += `<rect x="${gx+4+barW+5}" y="${baseline-hExp}" width="${barW}" height="${hExp}" rx="3" fill="var(--expense,#b23a2f)"></rect>`;
+    labels += `<text x="${gx + groupW/2 - 2}" y="${h-10}" font-size="10.5" fill="var(--ink-dim,#777)" text-anchor="middle" font-family="Work Sans, sans-serif">${m.label}</text>`;
+  });
+  const gridLines = [0.25,0.5,0.75,1].map(f=>{
+    const y = (h-pad) - f*(h-pad*2);
+    return `<line x1="${pad-6}" y1="${y}" x2="${w-6}" y2="${y}" stroke="var(--border,#e3ddd0)" stroke-width="1"/>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="auto" style="max-width:${w}px;">
+    <line x1="${pad-6}" y1="${h-pad}" x2="${w-6}" y2="${h-pad}" stroke="var(--border,#e3ddd0)" stroke-width="1"/>
+    ${gridLines}
+    ${bars}${labels}
+  </svg>`;
+}
+
+function buildSuggestions(ym){
+  const tips = [];
+  const {inc, exp, profit} = monthTotals(ym);
+  const margin = inc>0 ? (profit/inc)*100 : null;
+  const byCat = expenseByCategory(ym);
+  const fuel = byCat.find(([c])=>c==='Combustible');
+  const payroll = byCat.find(([c])=>c==='Nómina y conductores');
+
+  if(inc===0 && exp===0){
+    tips.push({sev:'info', t:'Aún no hay datos este mes', d:'Registra tus ingresos y gastos de '+monthLabel(ym)+' para ver el análisis financiero y recomendaciones automáticas.'});
+    return tips;
+  }
+
+  if(margin===null){
+    tips.push({sev:'crit', t:'No hay ingresos registrados', d:'Este mes solo hay gastos por '+fmtCOP(exp)+'. Registra los ingresos de contratos y viajes para calcular tu margen real.'});
+  } else if(margin < 0){
+    tips.push({sev:'crit', t:'El mes está en pérdida', d:`Los gastos (${fmtCOP(exp)}) superan los ingresos (${fmtCOP(inc)}) en ${fmtCOP(Math.abs(profit))}. Revisa con urgencia qué contratos o rutas no están cubriendo su costo operativo antes de asumir nuevos compromisos.`});
+  } else if(margin < 10){
+    tips.push({sev:'warn', t:'Margen de utilidad muy ajustado ('+margin.toFixed(1)+'%)', d:'Un margen sano para transporte especial suele estar entre 15% y 25%. Considera revisar tarifas de contratos vencidos o renegociar próximas renovaciones.'});
+  } else if(margin < 20){
+    tips.push({sev:'info', t:'Margen aceptable pero mejorable ('+margin.toFixed(1)+'%)', d:'Vas en la dirección correcta. Apunta a un colchón de 20%+ para poder reinvertir en mantenimiento preventivo sin afectar el flujo de caja.'});
+  } else {
+    tips.push({sev:'good', t:'Buen margen de utilidad ('+margin.toFixed(1)+'%)', d:'La operación es rentable este mes. Considera destinar una parte del excedente a un fondo de reserva para mantenimientos mayores e imprevistos.'});
+  }
+
+  if(byCat.length){
+    const [topCat, topVal] = byCat[0];
+    const share = exp>0 ? (topVal/exp)*100 : 0;
+    if(share > 40){
+      tips.push({sev:'warn', t:`"${topCat}" concentra ${share.toFixed(0)}% de los gastos del mes`, d:`Es tu mayor categoría de gasto (${fmtCOP(topVal)}). Vale la pena analizarla por vehículo o proveedor para detectar sobrecostos o negociar mejores condiciones.`});
+    }
+  }
+  if(fuel && exp>0 && (fuel[1]/exp)*100 > 35){
+    tips.push({sev:'warn', t:'El combustible pesa mucho en el gasto total', d:'Revisa rendimiento por vehículo, evalúa rutas más eficientes y compara si conviene un convenio de combustible con descuento por volumen.'});
+  }
+  if(payroll && exp>0 && (payroll[1]/exp)*100 > 45){
+    tips.push({sev:'info', t:'La nómina es tu costo fijo más pesado', d:'Es normal en transporte de personas, pero confirma que la facturación de contratos cubra con holgura este costo fijo antes de sumar rutas nuevas.'});
+  }
+
+  const monthMaint = currentMonthRecords('maintenance');
+  const vehiclesWithoutMaint = state.vehicles.filter(v => v.status!=='Inactivo' && !monthMaint.some(m=>m.vehicleId===v.id));
+  if(state.vehicles.length && vehiclesWithoutMaint.length){
+    tips.push({sev:'info', t:`${vehiclesWithoutMaint.length} vehículo(s) sin mantenimiento registrado este mes`, d:'El mantenimiento preventivo (engrase, revisión de frenos y suspensión) cuesta menos que una reparación correctiva y evita días parado el vehículo. Vehículos: '+vehiclesWithoutMaint.slice(0,4).map(v=>v.plate).join(', ')+ (vehiclesWithoutMaint.length>4?'…':'') });
+  }
+
+  const contractIncomeShare = incomeConcentration(ym);
+  if(contractIncomeShare && contractIncomeShare.share > 60){
+    tips.push({sev:'warn', t:'Alta dependencia de un solo cliente', d:`"${contractIncomeShare.label}" representa cerca del ${contractIncomeShare.share.toFixed(0)}% de tus ingresos del mes. Diversificar entre más contratos y viajes de turismo reduce el riesgo si se pierde ese cliente.`});
+  }
+
+  const prev = monthTotals(shiftMonth(ym,-1));
+  if(prev.inc>0){
+    const change = ((inc-prev.inc)/prev.inc)*100;
+    if(change <= -15) tips.push({sev:'warn', t:'Los ingresos bajaron frente al mes anterior', d:`Caída de ${Math.abs(change).toFixed(0)}% respecto a ${monthLabel(shiftMonth(ym,-1))}. Revisa si hubo contratos que terminaron o menos viajes de turismo, y busca reactivarlos.`});
+  }
+
+  tips.push({sev:'good', t:'Hábito recomendado: fondo de reserva', d:'Aparta un 10%–15% de la utilidad mensual en una cuenta separada exclusiva para mantenimientos mayores, llantas y documentos del vehículo (SOAT, tecnomecánica, impuestos).'});
+
+  return tips.slice(0,7);
+}
+function incomeConcentration(ym){
+  const rows = state.income.filter(r=>inMonth(r.date, ym));
+  const total = rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
+  if(!total) return null;
+  const map = {};
+  rows.forEach(r=>{ const key=r.description||r.source||'Otro'; map[key]=(map[key]||0)+(Number(r.amount)||0); });
+  const top = Object.entries(map).sort((a,b)=>b[1]-a[1])[0];
+  if(!top) return null;
+  return {label:top[0], share:(top[1]/total)*100};
+}
+
+function viewDashboard(){
+  const {inc, exp, profit} = monthTotals(state.month);
+  const margin = inc>0 ? (profit/inc)*100 : 0;
+  const prev = monthTotals(shiftMonth(state.month,-1));
+  const incDelta = prev.inc>0 ? ((inc-prev.inc)/prev.inc)*100 : null;
+  const expDelta = prev.exp>0 ? ((exp-prev.exp)/prev.exp)*100 : null;
+
+  const months = last6Months(state.month).map(ym=>{
+    const t = monthTotals(ym);
+    return {label: new Date(ym+'-01').toLocaleDateString('es-CO',{month:'short'}).replace('.',''), inc:t.inc, exp:t.exp};
+  });
+
+  const byCat = expenseByCategory(state.month);
+  const catLegend = byCat.length ? byCat.map(([c,v],i)=>{
+    const pct = ((v/(exp||1))*100).toFixed(0);
+    return `<div class="li"><span class="sw" style="background:${PALETTE[i%PALETTE.length]}"></span>${escapeHtml(c)} — ${fmtCOP(v)} (${pct}%)</div>`;
+  }).join('') : `<div class="muted" style="font-size:13px;">Sin gastos registrados este mes.</div>`;
+
+  const tips = buildSuggestions(state.month);
+  const contractsActive = state.contracts.filter(c=>c.status==='Activo').length;
+  const tripsThisMonth = state.trips.filter(t=>inMonth(t.date, state.month)).length;
+
+  document.getElementById('content').innerHTML = `
+    <div class="grid kpis" style="margin-bottom:14px;">
+      <div class="card kpi">
+        <div class="lbl">Ingresos del mes</div>
+        <div class="val" style="color:var(--income);">${fmtCOP(inc)}</div>
+        ${incDelta!==null?`<div class="delta ${incDelta>=0?'up':'down'}">${incDelta>=0?'▲':'▼'} ${Math.abs(incDelta).toFixed(1)}% vs mes anterior</div>`:`<div class="delta muted">Sin comparativo</div>`}
+      </div>
+      <div class="card kpi">
+        <div class="lbl">Gastos del mes</div>
+        <div class="val" style="color:var(--expense);">${fmtCOP(exp)}</div>
+        ${expDelta!==null?`<div class="delta ${expDelta<=0?'up':'down'}">${expDelta>=0?'▲':'▼'} ${Math.abs(expDelta).toFixed(1)}% vs mes anterior</div>`:`<div class="delta muted">Sin comparativo</div>`}
+      </div>
+      <div class="card kpi">
+        <div class="lbl">Utilidad del mes</div>
+        <div class="val" style="color:${profit>=0?'var(--income)':'var(--expense)'};">${fmtCOP(profit)}</div>
+        <div class="delta muted">Margen: ${inc>0? margin.toFixed(1)+'%' : '—'}</div>
+      </div>
+      <div class="card kpi">
+        <div class="lbl">Operación activa</div>
+        <div class="val" style="font-size:19px;">${contractsActive} contratos</div>
+        <div class="delta muted">${tripsThisMonth} viaje(s) de turismo este mes</div>
+      </div>
+    </div>
+
+    <div class="grid two-col" style="margin-bottom:14px;">
+      <div class="card chartcard">
+        <h3>Ingresos vs. gastos</h3>
+        <div class="cardsub">Últimos 6 meses</div>
+        ${svgBars(months)}
+        <div class="legend">
+          <div class="li"><span class="sw" style="background:var(--income);"></span>Ingresos</div>
+          <div class="li"><span class="sw" style="background:var(--expense);"></span>Gastos</div>
+        </div>
+      </div>
+      <div class="card chartcard">
+        <h3>¿En qué se va la plata?</h3>
+        <div class="cardsub">Gastos por categoría — ${monthLabel(state.month)}</div>
+        <div style="display:flex;justify-content:center;">${svgDonut(byCat.slice(0,8))}</div>
+        <div class="legend">${catLegend}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Sugerencias para unas finanzas equilibradas</h3>
+      <div class="cardsub">Generadas automáticamente a partir de tus datos de ${monthLabel(state.month)}</div>
+      <div class="tips">
+        ${tips.map(t=>`<div class="tip ${t.sev==='crit'?'crit':t.sev==='warn'?'warn':t.sev==='good'?'good':'info'}"><span class="dot"></span><div><div class="t">${escapeHtml(t.t)}</div><div class="d">${escapeHtml(t.d)}</div></div></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/* ============================ ROUTER / RENDER ============================ */
+function render(){
+  if(!visibleNav().some(n=>n.id===state.view)) state.view = 'dashboard';
+  renderNav();
+  updateTopbar();
+  const map = {
+    dashboard: viewDashboard, vehicles: viewVehicles, contracts: viewContracts, trips: viewTrips,
+    schedule: viewSchedule, commissions: viewCommissions, finance: viewFinance,
+    income: viewIncome, expenses: viewExpenses, maintenance: viewMaintenance, users: viewUsers,
+  };
+  (map[state.view]||viewDashboard)();
+  document.getElementById('sidebar').classList.toggle('open', state.sidebarOpen);
+  document.getElementById('scrim').classList.toggle('open', state.sidebarOpen);
+}
+
+document.getElementById('menuBtn').addEventListener('click', ()=>{ state.sidebarOpen=!state.sidebarOpen; render(); });
+document.getElementById('scrim').addEventListener('click', ()=>{ state.sidebarOpen=false; render(); });
+async function onMonthChange(){
+  const jobs = [fetchFinance(state.month).catch(()=>{})];
+  if(!(currentUser && currentUser.role==='limited')) jobs.push(fetchContractPayments(state.month).catch(()=>{}));
+  await Promise.all(jobs);
+  render();
+}
+document.getElementById('prevMonth').addEventListener('click', async ()=>{ state.month = shiftMonth(state.month,-1); await onMonthChange(); });
+document.getElementById('nextMonth').addEventListener('click', async ()=>{ state.month = shiftMonth(state.month,1); await onMonthChange(); });
+
+/* ============================ START ============================ */
+(function start(){
+  if(authToken && currentUser){
+    bootApp();
+  } else {
+    loginScreen.style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>

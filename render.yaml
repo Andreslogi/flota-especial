@@ -1,0 +1,28 @@
+databases:
+  - name: flota-db
+    plan: free
+    databaseName: flota
+    user: flota
+
+services:
+  - type: web
+    name: flota-backend
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: flota-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: ADMIN_EMAIL
+        value: admin@tuempresa.com
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_NAME
+        value: Administrador
