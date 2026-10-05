@@ -154,10 +154,16 @@ def undo_trip_payment(payment_id: str, db: Session = Depends(get_db), user: mode
     trip = db.query(models.Trip).filter(models.Trip.id == payment.trip_id).first()
     if trip:
         check_vehicle_in_scope(trip.vehicle_id, user, db)
-    if payment.income_id:
-        income = db.query(models.Income).filter(models.Income.id == payment.income_id).first()
+    # Primero el pago (que es quien referencia al ingreso) y luego el
+    # ingreso: al revés, Postgres rechaza el borrado del ingreso porque el
+    # pago todavía le apunta (violación de llave foránea) — SQLite no es
+    # tan estricto con esto, por eso el error solo aparecía en producción.
+    income_id = payment.income_id
+    db.delete(payment)
+    db.flush()
+    if income_id:
+        income = db.query(models.Income).filter(models.Income.id == income_id).first()
         if income:
             db.delete(income)
-    db.delete(payment)
     db.commit()
     return {"ok": True}

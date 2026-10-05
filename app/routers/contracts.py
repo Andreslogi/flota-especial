@@ -132,10 +132,15 @@ def undo_payment(contract_id: str, month: str, db: Session = Depends(get_db), _=
     ).first()
     if not payment:
         raise HTTPException(status_code=404, detail="No hay un pago registrado ese mes")
-    if payment.income_id:
-        income = db.query(models.Income).filter(models.Income.id == payment.income_id).first()
+    # Primero el pago (que es quien referencia al ingreso) y luego el
+    # ingreso: al revés, Postgres rechaza el borrado del ingreso porque el
+    # pago todavía le apunta (violación de llave foránea).
+    income_id = payment.income_id
+    db.delete(payment)
+    db.flush()
+    if income_id:
+        income = db.query(models.Income).filter(models.Income.id == income_id).first()
         if income:
             db.delete(income)
-    db.delete(payment)
     db.commit()
     return {"ok": True}

@@ -47,6 +47,13 @@ def delete_income(income_id: str, db: Session = Depends(get_db), _=Depends(requi
     i = db.query(models.Income).filter(models.Income.id == income_id).first()
     if not i:
         raise HTTPException(status_code=404, detail="Ingreso no encontrado")
+    # Si este ingreso vino de un pago de viaje o de contrato (en vez de
+    # haberse creado manualmente), hay que borrar primero ese pago — si no,
+    # Postgres rechaza el borrado del ingreso porque el pago todavía lo
+    # referencia (igual que al "deshacer pago" desde Viajes/Contratos).
+    db.query(models.TripPayment).filter(models.TripPayment.income_id == income_id).delete()
+    db.query(models.ContractPayment).filter(models.ContractPayment.income_id == income_id).delete()
+    db.flush()
     db.delete(i)
     db.commit()
     return {"ok": True}

@@ -750,11 +750,15 @@ function openPaymentModal(contract){
   document.getElementById('closeModal').addEventListener('click', close);
   document.getElementById('cancelModal').addEventListener('click', close);
   document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') close(); });
-  document.getElementById('saveModal').addEventListener('click', ()=>{
+  document.getElementById('saveModal').addEventListener('click', (ev)=>{
     const date = document.getElementById('pay_date').value;
     const amount = Number(document.getElementById('pay_amount').value);
     const method = document.getElementById('pay_method').value;
     if(!date || !amount){ toast('Ingresa fecha y monto.'); return; }
+    // Bloquea el botón de una vez: si el internet va lento y le dan doble
+    // clic antes de que cierre el modal, se registraba el pago dos veces.
+    ev.target.disabled = true;
+    ev.target.textContent = 'Guardando…';
     registerContractPayment(contract, {date, amount, method});
     close();
   });
@@ -818,24 +822,38 @@ function openTripPaymentModal(trip){
       draw();
     }));
 
-    document.getElementById('btnPagoTotal')?.addEventListener('click', async ()=>{
+    document.getElementById('btnPagoTotal')?.addEventListener('click', async (ev)=>{
       const date = document.getElementById('tp_date').value;
       const method = document.getElementById('tp_method').value;
       const notes = document.getElementById('tp_notes').value;
       if(!date){ toast('Ingresa la fecha del pago.'); return; }
-      await registerTripPayment(trip, {date, amount: balance, method, notes});
-      draw();
+      // Bloquea ambos botones mientras se guarda: si el internet va lento y
+      // alguien le da clic dos veces, antes se registraba el pago duplicado.
+      const btns = [document.getElementById('btnPagoTotal'), document.getElementById('btnAbono')];
+      btns.forEach(b=>{ if(b) b.disabled = true; });
+      ev.target.textContent = 'Guardando…';
+      try{
+        await registerTripPayment(trip, {date, amount: balance, method, notes});
+      } finally{
+        draw();
+      }
     });
 
-    document.getElementById('btnAbono')?.addEventListener('click', async ()=>{
+    document.getElementById('btnAbono')?.addEventListener('click', async (ev)=>{
       const date = document.getElementById('tp_date').value;
       const amount = Number(document.getElementById('tp_amount').value);
       const method = document.getElementById('tp_method').value;
       const notes = document.getElementById('tp_notes').value;
       if(!date || !amount){ toast('Ingresa fecha y el monto del abono.'); return; }
       if(amount > balance){ toast(`El abono no puede ser mayor al saldo pendiente (${fmtCOP(balance)}).`); return; }
-      await registerTripPayment(trip, {date, amount, method, notes});
-      draw();
+      const btns = [document.getElementById('btnPagoTotal'), document.getElementById('btnAbono')];
+      btns.forEach(b=>{ if(b) b.disabled = true; });
+      ev.target.textContent = 'Guardando…';
+      try{
+        await registerTripPayment(trip, {date, amount, method, notes});
+      } finally{
+        draw();
+      }
     });
   };
   draw();
