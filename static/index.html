@@ -790,6 +790,7 @@ function openTripPaymentModal(trip){
             <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Valor cobrado</div><div style="font-weight:600;">${fmtCOP(total)}</div></div>
             <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Abonado</div><div style="font-weight:600;">${fmtCOP(paid)}</div></div>
             <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Saldo</div><div style="font-weight:600;">${fmtCOP(balance)}</div></div>
+            <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Utilidad del viaje</div><div style="font-weight:600;">${fmtCOP((Number(trip.amountCharged)||0) - (Number(trip.driverCommission)||0))}</div></div>
           </div>
 
           <div class="table-wrap" style="margin-top:4px;">
@@ -939,6 +940,7 @@ function viewTrips(){
       {label:'Vehículo', render:r=>escapeHtml(vehicleLabel(r.vehicleId))},
       {label:'Valor cobrado', num:true, render:r=>fmtCOP(r.amountCharged)},
       {label:'Comisión conductor (7%)', num:true, render:r=>fmtCOP(r.driverCommission)},
+      {label:'Utilidad del viaje', num:true, render:r=>fmtCOP((Number(r.amountCharged)||0) - (Number(r.driverCommission)||0))},
       {label:'Pago', render:r=>tripPaymentCellHtml(r)},
     ]
   });
