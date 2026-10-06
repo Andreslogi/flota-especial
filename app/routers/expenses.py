@@ -12,7 +12,7 @@ def ser(e: models.Expense) -> dict:
     return {
         "id": e.id, "date": e.date.isoformat() if e.date else None, "category": e.category,
         "vehicleId": e.vehicle_id, "description": e.description, "provider": e.provider,
-        "amount": e.amount, "notes": e.notes,
+        "amount": e.amount, "notes": e.notes, "tripId": e.trip_id,
     }
 
 
@@ -20,7 +20,7 @@ def kwargs(payload: schemas.ExpenseIn) -> dict:
     return dict(
         date=payload.date, category=payload.category, vehicle_id=payload.vehicleId,
         description=payload.description, provider=payload.provider, amount=payload.amount,
-        notes=payload.notes,
+        notes=payload.notes, trip_id=payload.tripId,
     )
 
 

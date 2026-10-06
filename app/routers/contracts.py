@@ -108,6 +108,7 @@ def pay_contract(
     income = models.Income(
         date=payload.date, source="Contrato", description=description,
         amount=payload.amount, method=payload.method, contract_id=contract.id,
+        vehicle_id=contract.vehicle_id,
         notes="Generado automáticamente desde el módulo de Contratos.",
     )
     db.add(income)

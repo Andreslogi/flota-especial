@@ -124,6 +124,13 @@ class Income(Base):
     method = Column(String)
     contract_id = Column(String, ForeignKey("contracts.id"), nullable=True)
     trip_id = Column(String, ForeignKey("trips.id"), nullable=True)
+    # A qué vehículo corresponde este ingreso. Para un ingreso generado
+    # automáticamente desde un pago de viaje o de contrato, se rellena solo
+    # con el vehículo de ese viaje/contrato. Existe sobre todo para poder
+    # filtrar Ingresos por el alcance de un usuario 'limited' (ver
+    # app/perms.py), incluyendo ingresos que un usuario de alcance limitado
+    # registre a mano para uno de sus vehículos.
+    vehicle_id = Column(String, ForeignKey("vehicles.id"), nullable=True)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -138,6 +145,10 @@ class Expense(Base):
     provider = Column(String)
     amount = Column(Float, nullable=False, default=0)
     notes = Column(Text)
+    # Si este gasto ocurrió durante un viaje de turismo puntual (peajes,
+    # víveres del conductor, imprevistos), queda vinculado a ese viaje para
+    # poder verlo y registrarlo desde el propio módulo de Viajes.
+    trip_id = Column(String, ForeignKey("trips.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

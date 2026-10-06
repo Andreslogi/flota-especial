@@ -293,7 +293,7 @@ const NAV = [
   {id:'schedule', label:'Programación', icon:'schedule', sub:'Ocupación de la agenda de cada carro'},
   {id:'commissions', label:'Comisiones', icon:'commission', sub:'7% por viaje para liquidar al conductor'},
   {id:'finance', label:'Finanzas', icon:'finance', sub:'Indicadores de rentabilidad por vehículo'},
-  {id:'income', label:'Ingresos', icon:'income', sub:'Dinero recibido', hideFor:['limited']},
+  {id:'income', label:'Ingresos', icon:'income', sub:'Dinero recibido'},
   {id:'expenses', label:'Gastos', icon:'expense', sub:'Salidas de dinero'},
   {id:'maintenance', label:'Mantenimiento', icon:'maintenance', sub:'Historial técnico por vehículo'},
   {id:'users', label:'Usuarios', icon:'users', sub:'Accesos al sistema', ownerOnly:true},
@@ -346,6 +346,7 @@ const FIELD_DEFS = {
   income: { title:'Ingreso', fields:[
     {k:'date',label:'Fecha',type:'date',required:true},
     {k:'source',label:'Origen',type:'select',options:INCOME_SOURCES,default:'Contrato'},
+    {k:'vehicleId',label:'Vehículo relacionado',type:'vehicle'},
     {k:'description',label:'Descripción',type:'text',required:true},
     {k:'amount',label:'Valor (COP)',type:'number',required:true},
     {k:'method',label:'Forma de pago',type:'select',options:PAY_METHODS,default:'Transferencia'},
@@ -435,20 +436,22 @@ async function fetchFinance(month){
   state.finance = await apiFetch('/api/finance/summary?month=' + encodeURIComponent(month));
 }
 async function fetchAll(){
-  // Un usuario 'limited' no tiene acceso a Contratos ni Ingresos (el backend
-  // los rechaza con 403), así que ni los pedimos para no romper el resto de
-  // la carga de datos.
+  // Un usuario 'limited' no tiene acceso a Contratos (el backend lo rechaza
+  // con 403), así que ni lo pedimos para no romper el resto de la carga de
+  // datos. Ingresos sí lo puede ver (el backend ya lo filtra a sus propios
+  // vehículos), pero no los pagos de contrato (van de la mano de Contratos).
   const scoped = currentUser && currentUser.role === 'limited';
   const jobs = [
     fetchCollection('vehicles'), fetchCollection('trips'),
     fetchCollection('expenses'), fetchCollection('maintenance'),
-    fetchCollection('categories'), fetchTripPayments(), fetchFinance(state.month),
+    fetchCollection('categories'), fetchCollection('income'),
+    fetchTripPayments(), fetchFinance(state.month),
   ];
   if(!scoped){
-    jobs.push(fetchCollection('contracts'), fetchCollection('income'), fetchContractPayments(state.month));
+    jobs.push(fetchCollection('contracts'), fetchContractPayments(state.month));
   } else {
-    state.contracts = []; state.income = []; state.contractPayments = [];
-    state.loaded.contracts = true; state.loaded.income = true; state.loaded.contractPayments = true;
+    state.contracts = []; state.contractPayments = [];
+    state.loaded.contracts = true; state.loaded.contractPayments = true;
   }
   await Promise.all(jobs);
 }
@@ -773,6 +776,8 @@ function openTripPaymentModal(trip){
   const draw = ()=>{
     const {paid, total, balance} = tripTotals(trip);
     const payments = tripPaymentsFor(trip.id);
+    const tripExpenses = state.expenses.filter(e=>e.tripId===trip.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const expTotal = tripExpenses.reduce((s,e)=>s+(Number(e.amount)||0),0);
     root.innerHTML = `<div class="overlay" id="overlay">
       <div class="modal">
         <div class="modal-head">
@@ -802,6 +807,31 @@ function openTripPaymentModal(trip){
           </div>
           <div class="field"><label>Notas</label><input id="tp_notes" type="text" placeholder="Opcional"/></div>
           ` : ''}
+
+          <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;"/>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <h4 style="margin:0;">Gastos del viaje</h4>
+            ${tripExpenses.length ? `<div class="muted" style="font-size:12px;">Total: ${fmtCOP(expTotal)}</div>` : ''}
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:2px;">Víveres del conductor, peajes y demás gastos ocasionales de este viaje.</div>
+
+          <div class="table-wrap" style="margin-top:8px;">
+            ${tripExpenses.length ? `<table><thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th class="num">Valor</th>${writable?'<th></th>':''}</tr></thead><tbody>${tripExpenses.map(e=>`
+              <tr><td>${e.date||'—'}</td><td>${escapeHtml(e.category||'—')}</td><td>${escapeHtml(e.description||'')}</td><td class="num">${fmtCOP(e.amount)}</td>
+                ${writable?`<td><button class="iconbtn" data-deltripexp="${e.id}" title="Eliminar">${icon('trash',13)}</button></td>`:''}
+              </tr>`).join('')}</tbody></table>` : `<div class="empty">Todavía no hay gastos registrados para este viaje.</div>`}
+          </div>
+
+          ${writable ? `
+          <div class="field" style="margin-top:10px;"><label>Fecha del gasto *</label><input id="te_date" type="date" value="${today}"/></div>
+          <div class="field"><label>Categoría *</label>
+            <select id="te_category">${categoryNames().map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}</select>
+          </div>
+          <div class="field"><label>Descripción *</label><input id="te_description" type="text" placeholder="Ej: peaje, víveres del conductor…"/></div>
+          <div class="field"><label>Proveedor / a quién se pagó</label><input id="te_provider" type="text" placeholder="Opcional"/></div>
+          <div class="field"><label>Valor (COP) *</label><input id="te_amount" type="number" step="any"/></div>
+          <div style="margin-top:6px;"><button class="btn ghost" id="btnAddTripExpense">${icon('plus',14)} Agregar gasto del viaje</button></div>
+          ` : ''}
         </div>
         <div class="modal-foot">
           <button class="btn ghost" id="closeModal2">Cerrar</button>
@@ -821,6 +851,42 @@ function openTripPaymentModal(trip){
       await undoTripPayment(b.dataset.delpay);
       draw();
     }));
+
+    document.querySelectorAll('[data-deltripexp]').forEach(b=>b.addEventListener('click', async ()=>{
+      if(!confirm('¿Eliminar este gasto del viaje?')) return;
+      try{
+        await apiFetch('/api/expenses/'+b.dataset.deltripexp, {method:'DELETE'});
+        await fetchCollection('expenses');
+        toast('Gasto eliminado.');
+      }catch(e){ toast(e.message || 'No se pudo eliminar.'); }
+      draw();
+    }));
+
+    document.getElementById('btnAddTripExpense')?.addEventListener('click', async (ev)=>{
+      const date = document.getElementById('te_date').value;
+      const category = document.getElementById('te_category').value;
+      const description = document.getElementById('te_description').value.trim();
+      const provider = document.getElementById('te_provider').value.trim();
+      const amount = Number(document.getElementById('te_amount').value);
+      if(!date || !category || !description || !amount){ toast('Completa fecha, categoría, descripción y valor.'); return; }
+      ev.target.disabled = true;
+      const prevText = ev.target.textContent;
+      ev.target.textContent = 'Guardando…';
+      try{
+        await apiFetch('/api/expenses', {
+          method:'POST',
+          body: JSON.stringify({date, category, vehicleId: trip.vehicleId, description, provider, amount, notes:null, tripId: trip.id}),
+        });
+        await fetchCollection('expenses');
+        toast('Gasto agregado.');
+      }catch(e){
+        toast(e.message || 'No se pudo agregar el gasto.');
+      } finally{
+        ev.target.disabled = false;
+        ev.target.textContent = prevText;
+        draw();
+      }
+    });
 
     document.getElementById('btnPagoTotal')?.addEventListener('click', async (ev)=>{
       const date = document.getElementById('tp_date').value;
@@ -1099,6 +1165,7 @@ function viewIncome(){
       {label:'Fecha', render:r=>r.date||'—'},
       {label:'Origen', render:r=>`<span class="pill income">${escapeHtml(r.source||'—')}</span>`},
       {label:'Descripción', render:r=>escapeHtml(r.description||'')},
+      {label:'Vehículo', render:r=>escapeHtml(vehicleLabel(r.vehicleId))},
       {label:'Método', render:r=>escapeHtml(r.method||'—')},
       {label:'Valor', num:true, render:r=>fmtCOP(r.amount)},
     ]

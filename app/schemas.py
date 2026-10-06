@@ -44,6 +44,7 @@ class IncomeIn(BaseModel):
     amount: float = 0
     method: Optional[str] = None
     notes: Optional[str] = None
+    vehicleId: Optional[str] = None  # a qué vehículo corresponde (para ingresos registrados a mano)
 
 
 class ExpenseIn(BaseModel):
@@ -54,6 +55,7 @@ class ExpenseIn(BaseModel):
     provider: Optional[str] = None
     amount: float = 0
     notes: Optional[str] = None
+    tripId: Optional[str] = None  # si el gasto ocurrió durante un viaje de turismo puntual
 
 
 class MaintenanceIn(BaseModel):

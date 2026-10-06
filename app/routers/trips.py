@@ -129,6 +129,7 @@ def pay_trip(trip_id: str, payload: schemas.TripPaymentIn, db: Session = Depends
     income = models.Income(
         date=payload.date, source="Viaje de turismo", description=description,
         amount=payload.amount, method=payload.method, trip_id=trip.id,
+        vehicle_id=trip.vehicle_id,
         notes=payload.notes or "Generado automáticamente desde el módulo de Viajes.",
     )
     db.add(income)
