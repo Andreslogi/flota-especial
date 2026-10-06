@@ -406,6 +406,18 @@ function tripTotals(trip){
   const total = Number(trip.amountCharged)||0;
   return {paid, total, balance: Math.max(0, total - paid)};
 }
+function tripExpensesFor(tripId){
+  return state.expenses.filter(e=>e.tripId===tripId);
+}
+function tripExpensesTotal(tripId){
+  return tripExpensesFor(tripId).reduce((s,e)=>s+(Number(e.amount)||0),0);
+}
+// Utilidad del viaje: lo cobrado, menos la comisión del conductor, menos los
+// gastos ocasionales que se hayan registrado para ese viaje (peajes,
+// víveres, hotel, etc.).
+function tripProfit(trip){
+  return (Number(trip.amountCharged)||0) - (Number(trip.driverCommission)||0) - tripExpensesTotal(trip.id);
+}
 // Roles: owner (control total + único que gestiona usuarios), manager
 // (control total salvo editar/eliminar viajes ya ingresados), limited (solo
 // sus vehículos asignados), staff (heredado: solo lectura de todo).
@@ -790,7 +802,7 @@ function openTripPaymentModal(trip){
             <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Valor cobrado</div><div style="font-weight:600;">${fmtCOP(total)}</div></div>
             <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Abonado</div><div style="font-weight:600;">${fmtCOP(paid)}</div></div>
             <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Saldo</div><div style="font-weight:600;">${fmtCOP(balance)}</div></div>
-            <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Utilidad del viaje</div><div style="font-weight:600;">${fmtCOP((Number(trip.amountCharged)||0) - (Number(trip.driverCommission)||0))}</div></div>
+            <div><div class="muted" style="font-size:11px;text-transform:uppercase;">Utilidad del viaje</div><div style="font-weight:600;">${fmtCOP(tripProfit(trip))}</div></div>
           </div>
 
           <div class="table-wrap" style="margin-top:4px;">
@@ -940,7 +952,7 @@ function viewTrips(){
       {label:'Vehículo', render:r=>escapeHtml(vehicleLabel(r.vehicleId))},
       {label:'Valor cobrado', num:true, render:r=>fmtCOP(r.amountCharged)},
       {label:'Comisión conductor (7%)', num:true, render:r=>fmtCOP(r.driverCommission)},
-      {label:'Utilidad del viaje', num:true, render:r=>fmtCOP((Number(r.amountCharged)||0) - (Number(r.driverCommission)||0))},
+      {label:'Utilidad del viaje', num:true, render:r=>fmtCOP(tripProfit(r))},
       {label:'Pago', render:r=>tripPaymentCellHtml(r)},
     ]
   });
